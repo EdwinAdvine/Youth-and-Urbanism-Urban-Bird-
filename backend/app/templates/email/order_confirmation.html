@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed - {{ order_number }}{% endblock %}
+{% block content %}
+<h2>Order Confirmed! ✅</h2>
+<p>Hi {{ first_name }}, thank you for your order. We're getting it ready for you.</p>
+
+<div class="order-box">
+  <div class="order-row">
+    <span style="color:#6b7280">Order Number</span>
+    <strong>{{ order_number }}</strong>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Total</span>
+    <strong style="color:#782121">{{ order_total }}</strong>
+  </div>
+</div>
+
+<p>You'll receive another email when your order is shipped.</p>
+<center>
+  <a href="{{ order_url }}" class="cta">Track Your Order</a>
+</center>
+{% endblock %}

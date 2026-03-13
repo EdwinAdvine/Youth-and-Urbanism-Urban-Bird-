@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Your order has shipped!{% endblock %}
+{% block content %}
+<h2>Your order is on its way! 📦</h2>
+<p>Hi {{ first_name }}, great news — your order <strong>{{ order_number }}</strong> has been shipped!</p>
+
+<div class="order-box">
+  <div class="order-row">
+    <span style="color:#6b7280">Tracking Number</span>
+    <strong>{{ tracking_number }}</strong>
+  </div>
+</div>
+
+<p>Delivery usually takes 1–5 business days depending on your location.</p>
+<center>
+  <a href="{{ order_url }}" class="cta">Track Order</a>
+</center>
+{% endblock %}
