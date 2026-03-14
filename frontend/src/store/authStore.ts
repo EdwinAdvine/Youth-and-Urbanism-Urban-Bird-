@@ -67,14 +67,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        // Clear token and guest session data first (synchronous, cannot fail)
+        // Call server logout FIRST while the access token is still attached —
+        // this invalidates the refresh token in Redis and clears the httpOnly cookie.
+        try { await authService.logout(); } catch {}
+        // Now clear local state
         clearAccessToken();
         sessionStorage.removeItem("ub_guest_email");
         sessionStorage.removeItem("ub_guest_token");
-        // Clear auth state immediately so UI responds at once
         set({ user: null, isAuthenticated: false });
-        // Fire-and-forget server-side logout (invalidates refresh cookie)
-        authService.logout().catch(() => {});
       },
 
       setUser: (user) => set({ user, isAuthenticated: true }),
@@ -82,7 +82,12 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "ub-auth-storage",
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated, isInitialized: state.isInitialized }),
+      // Only persist nothing — auth state is always re-derived from the
+      // httpOnly refresh token cookie on page load via initialize().
+      // Persisting user/isAuthenticated caused signed-out users to be
+      // re-authenticated because the refresh cookie was never revoked
+      // (the logout API call was missing its auth header).
+      partialize: () => ({}),
     }
   )
 );
