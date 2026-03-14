@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 import re
+import json
 
 from app.database import get_db
 from app.models.product import Product, ProductVariant, ProductImage, Category, Subcategory, ProductReview
@@ -13,6 +14,13 @@ from app.models.audit_log import AuditLog
 from app.schemas.product import ProductCreate, ProductUpdate, VariantCreate, ProductDetail
 from app.api.deps import get_admin_user
 from app.utils.file_upload import save_product_image
+
+
+def _json_safe(data: dict | None) -> dict | None:
+    """Convert a dict to JSON-serializable form (converts UUID → str, Decimal → float, etc.)."""
+    if data is None:
+        return None
+    return json.loads(json.dumps(data, default=str))
 
 
 async def _log(
@@ -30,8 +38,8 @@ async def _log(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        old_value=old_value,
-        new_value=new_value,
+        old_value=_json_safe(old_value),
+        new_value=_json_safe(new_value),
         description=description,
     ))
 

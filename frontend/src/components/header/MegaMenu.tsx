@@ -52,7 +52,7 @@ export default function MegaMenu() {
   };
 
   const close = () => {
-    timeoutRef.current = setTimeout(() => setActiveSlug(null), 150);
+    timeoutRef.current = setTimeout(() => setActiveSlug(null), 300);
   };
 
   const keepOpen = () => clearTimeout(timeoutRef.current);
@@ -61,14 +61,17 @@ export default function MegaMenu() {
 
   return (
     <>
-      <nav className="hidden lg:flex items-center">
+      <nav className="hidden lg:flex items-stretch h-14">
         {/* ── Main category tabs ── */}
         {categories.map((cat) => (
-          <div key={cat.slug} className="relative">
+          <div
+            key={cat.slug}
+            className="relative flex items-center"
+            onMouseEnter={() => open(cat.slug)}
+            onMouseLeave={close}
+          >
             <Link
               to={cat.href}
-              onMouseEnter={() => open(cat.slug)}
-              onMouseLeave={close}
               className={`flex items-center gap-1 px-4 py-2 text-[13px] font-lexend font-semibold uppercase tracking-wide transition-colors duration-150 whitespace-nowrap ${
                 activeSlug === cat.slug
                   ? "text-maroon-700"
