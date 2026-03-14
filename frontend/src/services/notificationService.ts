@@ -11,38 +11,38 @@ interface NotificationListResponse {
 
 export const notificationService = {
   getNotifications: async (page = 1, limit = 20): Promise<NotificationListResponse> => {
-    const { data } = await api.get("/notifications", { params: { page, limit } });
+    const { data } = await api.get("/api/v1/notifications", { params: { page, limit } });
     return data;
   },
 
   getAdminNotifications: async (page = 1, limit = 20): Promise<NotificationListResponse> => {
-    const { data } = await api.get("/admin/notifications", { params: { page, limit } });
+    const { data } = await api.get("/api/v1/admin/notifications", { params: { page, limit } });
     return data;
   },
 
   getUnreadCount: async (): Promise<number> => {
-    const { data } = await api.get("/notifications/unread-count");
+    const { data } = await api.get("/api/v1/notifications/unread-count");
     return data.unread_count;
   },
 
   getAdminUnreadCount: async (): Promise<number> => {
-    const { data } = await api.get("/admin/notifications/unread-count");
+    const { data } = await api.get("/api/v1/admin/notifications/unread-count");
     return data.unread_count;
   },
 
   markRead: async (id: string): Promise<void> => {
-    await api.patch(`/notifications/${id}/read`);
+    await api.patch(`/api/v1/notifications/${id}/read`);
   },
 
   markAdminRead: async (id: string): Promise<void> => {
-    await api.patch(`/admin/notifications/${id}/read`);
+    await api.patch(`/api/v1/admin/notifications/${id}/read`);
   },
 
   markAllRead: async (): Promise<void> => {
-    await api.post("/notifications/read-all");
+    await api.post("/api/v1/notifications/read-all");
   },
 
   markAdminAllRead: async (): Promise<void> => {
-    await api.post("/admin/notifications/read-all");
+    await api.post("/api/v1/admin/notifications/read-all");
   },
 };
