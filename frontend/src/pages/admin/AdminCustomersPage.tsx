@@ -68,7 +68,7 @@ export default function AdminCustomersPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
   return (
-    <div className="p-6 font-manrope min-h-screen bg-gray-50">
+    <div className="p-4 sm:p-6 font-manrope min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -80,7 +80,7 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total Customers</p>
           <p className="text-2xl font-bold font-lexend text-gray-900">{customers.length}</p>
@@ -101,7 +101,7 @@ export default function AdminCustomersPage() {
 
       {/* Search */}
       <div className="mb-4 flex items-center gap-3">
-        <div className="relative">
+        <div className="relative flex-1 sm:flex-none">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -110,7 +110,7 @@ export default function AdminCustomersPage() {
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[#782121]"
+            className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-72 focus:outline-none focus:ring-2 focus:ring-[#782121]"
           />
         </div>
         {search && (
@@ -125,8 +125,8 @@ export default function AdminCustomersPage() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm min-w-[650px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Customer</th>

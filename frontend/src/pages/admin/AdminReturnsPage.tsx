@@ -204,8 +204,8 @@ export default function AdminReturnsPage() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead className="bg-gray-50 text-xs text-gray-500 font-manrope uppercase">
             <tr>
               {["Order", "Customer", "Reason", "Status", "Submitted", ""].map((h) => (

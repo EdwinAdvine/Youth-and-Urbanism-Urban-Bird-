@@ -1,11 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { NAV_CATEGORIES, NAV_EXTRAS } from "../../data/navData";
+import { useNavCategoryStore } from "../../store/navCategoryStore";
 
 export default function MegaMenu() {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const { navCategories, isLoaded, fetchCategories } = useNavCategoryStore();
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const categories = isLoaded && navCategories.length > 0 ? navCategories : NAV_CATEGORIES;
 
   const open = (slug: string) => {
     clearTimeout(timeoutRef.current);
@@ -18,13 +27,13 @@ export default function MegaMenu() {
 
   const keepOpen = () => clearTimeout(timeoutRef.current);
 
-  const activeCategory = NAV_CATEGORIES.find((c) => c.slug === activeSlug) ?? null;
+  const activeCategory = categories.find((c) => c.slug === activeSlug) ?? null;
 
   return (
     <>
       <nav className="hidden lg:flex items-center">
         {/* ── Main category tabs ── */}
-        {NAV_CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <div key={cat.slug} className="relative">
             <Link
               to={cat.href}
@@ -64,7 +73,7 @@ export default function MegaMenu() {
       </nav>
 
       {/* ── Mega dropdown panel (full-width, fixed below header) ── */}
-      {activeCategory && (
+      {activeCategory && activeCategory.groups.length > 0 && (
         <div
           className="fixed left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl z-40"
           style={{ top: "88px" }}
@@ -73,7 +82,7 @@ export default function MegaMenu() {
         >
           <div className="container-custom py-8">
             <div
-              className={`grid gap-8`}
+              className="grid gap-8"
               style={{ gridTemplateColumns: `260px repeat(${activeCategory.groups.length}, 1fr)` }}
             >
               {/* ── Banner image ── */}
@@ -95,11 +104,13 @@ export default function MegaMenu() {
               </div>
 
               {/* ── Subcategory groups ── */}
-              {activeCategory.groups.map((group) => (
-                <div key={group.title}>
-                  <p className="text-[11px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-3 pb-2 border-b border-gray-100">
-                    {group.title}
-                  </p>
+              {activeCategory.groups.map((group, gi) => (
+                <div key={gi}>
+                  {group.title && (
+                    <p className="text-[11px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-3 pb-2 border-b border-gray-100">
+                      {group.title}
+                    </p>
+                  )}
                   <ul className="space-y-1">
                     {group.items.map((item) => (
                       <li key={item.href}>

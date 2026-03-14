@@ -60,8 +60,8 @@ export default function AdminOrdersPage() {
         </select>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+        <table className="w-full text-sm min-w-[700px]">
           <thead className="bg-gray-50 text-xs text-gray-500 font-manrope uppercase">
             <tr>
               {["Order", "Customer", "Date", "Items", "Total", "Status", ""].map((h) => (

@@ -10,7 +10,7 @@ from app.models.order import Order, OrderStatusHistory, OrderItem
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.schemas.order import OrderOut, UpdateOrderStatus
-from app.api.deps import get_admin_user
+from app.api.deps import get_admin_user, get_super_admin
 from app.services.email_service import send_shipping_notification, send_admin_dispatch_notification
 from app.services.sms_service import send_shipping_sms
 from app.services.notification_service import create_notification, create_admin_notification
@@ -236,3 +236,34 @@ async def update_order_status(
     ))
 
     return {"message": f"Order status updated to {data.status}", "order_number": order.order_number}
+
+
+@router.delete("/{order_id}")
+async def delete_order(
+    order_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_super_admin),
+):
+    """Permanently delete an order. Super admin only."""
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items), selectinload(Order.status_history))
+        .where(Order.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    order_number = order.order_number
+
+    db.add(AuditLog(
+        admin_id=admin.id,
+        action="delete_order",
+        entity_type="order",
+        entity_id=str(order_id),
+        old_value={"order_number": order_number, "status": order.status, "total": float(order.total)},
+        description=f"Deleted order {order_number}",
+    ))
+
+    await db.delete(order)
+    return {"message": f"Order {order_number} deleted successfully"}

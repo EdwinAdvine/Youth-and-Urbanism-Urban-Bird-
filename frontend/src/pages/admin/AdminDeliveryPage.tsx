@@ -78,7 +78,7 @@ export default function AdminDeliveryPage() {
     new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="p-6 font-manrope min-h-screen bg-gray-50">
+    <div className="p-4 sm:p-6 font-manrope min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -143,8 +143,8 @@ export default function AdminDeliveryPage() {
           <div className="w-8 h-8 border-4 border-[#782121] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Order</th>

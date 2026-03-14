@@ -207,6 +207,44 @@ export default function HomePage() {
     title: "Premium Urban Streetwear Kenya",
     description: "Kenya's premier urban streetwear brand. Hoodies, sweatpants, jackets & accessories. Free delivery on orders above KSh 5,000.",
     url: "https://urbanbird.co.ke/",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://urbanbird.co.ke/#organization",
+          name: "Urban Bird",
+          url: "https://urbanbird.co.ke",
+          logo: "https://urbanbird.co.ke/og-image.jpg",
+          sameAs: [
+            "https://instagram.com/urbanbird_ke",
+            "https://facebook.com/urbanbird",
+            "https://tiktok.com/@urbanbird_ke",
+            "https://twitter.com/urbanbird_ke",
+          ],
+          contactPoint: {
+            "@type": "ContactPoint",
+            telephone: "+254799075061",
+            contactType: "customer service",
+            areaServed: "KE",
+            availableLanguage: "English",
+          },
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://urbanbird.co.ke/#website",
+          url: "https://urbanbird.co.ke",
+          name: "Urban Bird",
+          description: "Kenya's premier urban streetwear brand",
+          publisher: { "@id": "https://urbanbird.co.ke/#organization" },
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://urbanbird.co.ke/search?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
+        },
+      ],
+    },
   });
 
   useEffect(() => {

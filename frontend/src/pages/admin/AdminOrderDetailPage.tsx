@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ChevronLeft, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
@@ -8,18 +8,24 @@ import { formatKSh, formatDate } from "../../utils/formatPrice";
 import { ORDER_STATUSES } from "../../utils/constants";
 import toast from "react-hot-toast";
 import { useSEO } from "../../hooks/useSEO";
+import { useAuthStore } from "../../store/authStore";
 
 const STATUS_FLOW = ["pending_payment", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
 
 export default function AdminOrderDetailPage() {
   useSEO({ title: "Order Detail", noindex: true });
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === "super_admin";
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newStatus, setNewStatus] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [note, setNote] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const load = () => {
     setIsLoading(true);
@@ -45,6 +51,20 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/v1/admin/orders/${id}`);
+      toast.success("Order deleted.");
+      navigate("/admin/orders");
+    } catch {
+      toast.error("Failed to delete order.");
+      setDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) return <div className="text-center text-gray-500 py-16">Loading…</div>;
   if (!order) return <div className="text-center text-gray-500 py-16">Order not found.</div>;
 
@@ -63,9 +83,37 @@ export default function AdminOrderDetailPage() {
             Placed on {formatDate(order.created_at)} by {order.user?.first_name} {order.user?.last_name}
           </p>
         </div>
-        <Badge variant={statusInfo?.color as any ?? "default"} size="md">
-          {statusInfo?.label ?? order.status}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant={statusInfo?.color as any ?? "default"} size="md">
+            {statusInfo?.label ?? order.status}
+          </Badge>
+          {isSuperAdmin && !deleteConfirm && (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-1.5 text-xs font-manrope text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={13} /> Delete Order
+            </button>
+          )}
+          {isSuperAdmin && deleteConfirm && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-600 font-manrope font-medium">Are you sure?</span>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-xs font-manrope bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg font-medium"
+              >
+                {isDeleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="text-xs font-manrope border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

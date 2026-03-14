@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Drawer from "../ui/Drawer";
 import Logo from "./Logo";
 import { NAV_CATEGORIES, NAV_EXTRAS } from "../../data/navData";
+import { useNavCategoryStore } from "../../store/navCategoryStore";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -12,6 +13,11 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const { navCategories, isLoaded, fetchCategories } = useNavCategoryStore();
+
+  useEffect(() => { fetchCategories(); }, []);
+
+  const categories = isLoaded && navCategories.length > 0 ? navCategories : NAV_CATEGORIES;
 
   const toggleCat = (slug: string) =>
     setExpandedCat((v) => (v === slug ? null : slug));
@@ -25,7 +31,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
       <nav className="py-2 overflow-y-auto flex-1">
         {/* ── Category accordion ── */}
-        {NAV_CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <div key={cat.slug}>
             {/* Category toggle button */}
             <button
@@ -53,12 +59,14 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   Shop All {cat.label} →
                 </Link>
 
-                {cat.groups.map((group) => (
-                  <div key={group.title} className="px-5 pt-3">
-                    {/* Group heading */}
-                    <p className="text-[10px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-1.5">
-                      {group.title}
-                    </p>
+                {cat.groups.map((group, gi) => (
+                  <div key={gi} className="px-5 pt-3">
+                    {/* Group heading (only shown if there's a title) */}
+                    {group.title && (
+                      <p className="text-[10px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-1.5">
+                        {group.title}
+                      </p>
+                    )}
                     {group.items.map((item) => (
                       <Link
                         key={item.href}

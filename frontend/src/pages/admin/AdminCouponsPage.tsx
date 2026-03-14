@@ -157,7 +157,7 @@ export default function AdminCouponsPage() {
   });
 
   return (
-    <div className="p-6 font-manrope min-h-screen bg-gray-50">
+    <div className="p-4 sm:p-6 font-manrope min-h-screen bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -173,7 +173,7 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
         <div
           onClick={() => setFilterActive('all')}
           className={`rounded-xl border p-4 cursor-pointer transition-colors ${filterActive === 'all' ? 'border-[#782121] bg-[#782121]/5' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
@@ -203,8 +203,8 @@ export default function AdminCouponsPage() {
           <div className="w-8 h-8 border-4 border-[#782121] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Code</th>

@@ -333,9 +333,27 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
+      {/* Mobile/tablet: horizontal scrollable tabs */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 lg:hidden">
+        {SECTIONS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveSection(id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-manrope whitespace-nowrap flex-shrink-0 transition-colors ${
+              activeSection === id
+                ? "bg-maroon-700 text-white font-medium"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-maroon-300 hover:text-maroon-700"
+            }`}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-6">
-        {/* Sidebar nav */}
-        <div className="w-52 flex-shrink-0">
+        {/* Sidebar nav — desktop only */}
+        <div className="hidden lg:block w-52 flex-shrink-0">
           <nav className="space-y-0.5">
             {SECTIONS.map(({ id, label, icon: Icon }) => (
               <button
@@ -355,7 +373,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Section content */}
-        <div className="flex-1 bg-white rounded-xl border border-gray-100 p-6">
+        <div className="flex-1 bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
           {/* ── Store Identity ──────────────────────────────────────────── */}
           {activeSection === "identity" && (
             <div className="space-y-5">

@@ -6,7 +6,7 @@ import { formatKSh } from "../../utils/formatPrice";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import toast from "react-hot-toast";
-import { NAV_CATEGORIES } from "../../data/navData";
+import { useNavCategoryStore } from "../../store/navCategoryStore";
 import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminProductsPage() {
@@ -18,14 +18,19 @@ export default function AdminProductsPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
 
+  const { navCategories, rawCategories, isLoaded, fetchCategories } = useNavCategoryStore();
+  useEffect(() => { fetchCategories(); }, []);
+
+  // Subcategory items from the dynamic store
   const subcategoryItems = activeCategory
-    ? (NAV_CATEGORIES.find((c) => c.slug === activeCategory)?.groups.flatMap((g) =>
-        g.items.map((item) => ({
-          label: item.label,
-          slug: item.href.split("sub=")[1] ?? item.label.toLowerCase(),
-        }))
-      ) ?? [])
+    ? (rawCategories
+        .find((c) => c.slug === activeCategory)
+        ?.subcategories.filter((s) => s.is_active !== false)
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((s) => ({ label: s.name, slug: s.slug })) ?? [])
     : [];
+
+  const displayCategories = isLoaded && navCategories.length > 0 ? navCategories : [];
 
   const handleCategoryClick = (slug: string) => {
     setActiveCategory(slug === activeCategory ? null : slug);
@@ -94,7 +99,7 @@ export default function AdminProductsPage() {
         >
           All
         </button>
-        {NAV_CATEGORIES.map((cat) => (
+        {displayCategories.map((cat) => (
           <button
             key={cat.slug}
             onClick={() => handleCategoryClick(cat.slug)}
@@ -120,7 +125,7 @@ export default function AdminProductsPage() {
                 : "bg-white text-gray-500 border-gray-200 hover:border-maroon-300 hover:text-maroon-700"
             }`}
           >
-            All {NAV_CATEGORIES.find((c) => c.slug === activeCategory)?.label}
+            All {displayCategories.find((c) => c.slug === activeCategory)?.label}
           </button>
           {subcategoryItems.map((sub) => (
             <button
@@ -138,8 +143,8 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
+        <table className="w-full text-sm min-w-[650px]">
           <thead className="bg-gray-50 text-xs text-gray-500 font-manrope uppercase">
             <tr>
               {["Product", "Category", "Price", "Stock", "Status", ""].map((h) => (

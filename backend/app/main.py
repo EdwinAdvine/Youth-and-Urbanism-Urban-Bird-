@@ -179,3 +179,60 @@ app.include_router(admin_notifications.router, prefix=f"{ADMIN}/notifications", 
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "ok", "service": "Urban Bird API"}
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap():
+    """Dynamic sitemap combining static pages + all active products and categories."""
+    from app.database import AsyncSessionLocal
+    from app.models.product import Product, Category
+    from sqlalchemy import select
+    from fastapi.responses import Response
+
+    BASE = settings.frontend_url
+    STATIC = [
+        (BASE + "/", "1.0", "daily"),
+        (BASE + "/shop", "0.9", "daily"),
+        (BASE + "/category/men", "0.8", "daily"),
+        (BASE + "/category/women", "0.8", "daily"),
+        (BASE + "/category/kids", "0.8", "daily"),
+        (BASE + "/faq", "0.5", "monthly"),
+        (BASE + "/returns", "0.5", "monthly"),
+        (BASE + "/shipping", "0.5", "monthly"),
+        (BASE + "/track-order", "0.4", "monthly"),
+        (BASE + "/privacy", "0.3", "yearly"),
+        (BASE + "/terms", "0.3", "yearly"),
+    ]
+
+    urls = []
+    for loc, priority, changefreq in STATIC:
+        urls.append(f"  <url>\n    <loc>{loc}</loc>\n    <changefreq>{changefreq}</changefreq>\n    <priority>{priority}</priority>\n  </url>")
+
+    try:
+        async with AsyncSessionLocal() as db:
+            # Active products
+            prod_result = await db.execute(
+                select(Product.slug, Product.updated_at)
+                .where(Product.status == "active")
+                .order_by(Product.updated_at.desc())
+            )
+            for slug, updated_at in prod_result.all():
+                lastmod = updated_at.strftime("%Y-%m-%d") if updated_at else ""
+                lastmod_tag = f"\n    <lastmod>{lastmod}</lastmod>" if lastmod else ""
+                urls.append(
+                    f"  <url>\n    <loc>{BASE}/products/{slug}</loc>{lastmod_tag}\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>"
+                )
+            # Categories
+            cat_result = await db.execute(select(Category.slug).where(Category.is_active == True))
+            for (cat_slug,) in cat_result.all():
+                urls.append(
+                    f"  <url>\n    <loc>{BASE}/category/{cat_slug}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>"
+                )
+    except Exception:
+        pass  # Fall back to static-only sitemap
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    xml += "\n".join(urls)
+    xml += "\n</urlset>"
+    return Response(content=xml, media_type="application/xml")
