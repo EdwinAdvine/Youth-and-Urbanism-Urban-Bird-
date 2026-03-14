@@ -161,10 +161,10 @@ async def add_to_cart(
 
     await db.flush()
 
-    # Reload cart fresh (expire to bypass SQLAlchemy identity map cache)
-    db.expire(cart)
+    # Reload cart fresh
     result = await db.execute(
         select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
+        .execution_options(populate_existing=True)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)
@@ -197,9 +197,9 @@ async def update_cart_item(
         item.quantity = data.quantity
 
     await db.flush()
-    db.expire(cart)
     result = await db.execute(
         select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
+        .execution_options(populate_existing=True)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)
@@ -224,9 +224,9 @@ async def remove_cart_item(
     await db.delete(item)
     await db.flush()
 
-    db.expire(cart)
     result = await db.execute(
         select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
+        .execution_options(populate_existing=True)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)
