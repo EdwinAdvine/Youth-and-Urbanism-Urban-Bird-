@@ -19,6 +19,7 @@ import {
   Image,
   Mail,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useNotificationStore } from "../../store/notificationStore";
@@ -36,6 +37,7 @@ const navItems = [
   { to: "/admin/coupons", icon: Tag, label: "Coupons" },
   { to: "/admin/analytics", icon: BarChart2, label: "Analytics" },
   { to: "/admin/returns", icon: RotateCcw, label: "Returns" },
+  { to: "/admin/reviews", icon: MessageSquare, label: "Reviews" },
   { to: "/admin/newsletter", icon: Mail, label: "Newsletter" },
   { to: "/admin/banners", icon: Image, label: "Banners" },
   { to: "/admin/notifications", icon: Bell, label: "Notifications" },

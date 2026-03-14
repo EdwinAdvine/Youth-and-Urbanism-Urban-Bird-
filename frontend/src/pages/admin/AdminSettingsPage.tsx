@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Save, Store, Phone, Globe, Bell, Mail, AlertCircle,
-  CreditCard, MessageSquare, Eye, EyeOff,
+  CreditCard, MessageSquare, Eye, EyeOff, BarChart2,
 } from "lucide-react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
@@ -15,6 +15,7 @@ const SECTIONS = [
   { id: "email",         label: "Email / SMTP",      icon: Mail },
   { id: "sms",           label: "SMS",               icon: MessageSquare },
   { id: "inventory",     label: "Inventory Alerts",  icon: AlertCircle },
+  { id: "analytics",     label: "Analytics & Pixels", icon: BarChart2 },
 ];
 
 const MASKED = "__masked__";
@@ -162,6 +163,10 @@ export default function AdminSettingsPage() {
   // Inventory
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
 
+  // Analytics & Tracking
+  const [ga4MeasurementId, setGa4MeasurementId] = useState("");
+  const [metaPixelId, setMetaPixelId] = useState("");
+
   useEffect(() => {
     setIsLoading(true);
     api
@@ -231,6 +236,10 @@ export default function AdminSettingsPage() {
 
         // Inventory
         setLowStockThreshold(s.low_stock_threshold ?? 10);
+
+        // Analytics
+        setGa4MeasurementId(s.ga4_measurement_id ?? "");
+        setMetaPixelId(s.meta_pixel_id ?? "");
       })
       .catch(() => toast.error("Failed to load settings"))
       .finally(() => setIsLoading(false));
@@ -291,6 +300,8 @@ export default function AdminSettingsPage() {
         payload = omitMasked({ at_username: atUsername, at_api_key: atApiKey, at_sender_id: atSenderId });
       } else if (activeSection === "inventory") {
         payload = { low_stock_threshold: lowStockThreshold };
+      } else if (activeSection === "analytics") {
+        payload = { ga4_measurement_id: ga4MeasurementId, meta_pixel_id: metaPixelId };
       }
 
       await api.patch("/api/v1/admin/settings", { settings: payload });
@@ -655,6 +666,29 @@ export default function AdminSettingsPage() {
                   Variants at or below this quantity will appear in dashboard low-stock alerts.
                 </p>
               </div>
+            </div>
+          )}
+
+          {activeSection === "analytics" && (
+            <div className="space-y-6">
+              <SectionTitle>Analytics & Tracking</SectionTitle>
+              <Field
+                label="Google Analytics 4 Measurement ID"
+                value={ga4MeasurementId}
+                onChange={setGa4MeasurementId}
+                placeholder="G-XXXXXXXXXX"
+                hint="Find this in GA4 → Admin → Data Streams → your stream → Measurement ID."
+              />
+              <Field
+                label="Meta (Facebook) Pixel ID"
+                value={metaPixelId}
+                onChange={setMetaPixelId}
+                placeholder="1234567890123"
+                hint="Find this in Meta Business Suite → Events Manager → your pixel → Pixel ID."
+              />
+              <p className="text-xs text-gray-400 font-manrope bg-gray-50 rounded-lg p-3">
+                Tracking scripts load automatically on the storefront once IDs are saved. Leave blank to disable.
+              </p>
             </div>
           )}
         </div>

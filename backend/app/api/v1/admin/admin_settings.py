@@ -101,6 +101,7 @@ async def get_public_settings(db: AsyncSession = Depends(get_db)):
     PUBLIC_KEYS = [
         "store_name", "store_tagline", "whatsapp_number", "whatsapp_message",
         "announcement_messages", "social_links", "store_logo_url", "cod_enabled",
+        "ga4_measurement_id", "meta_pixel_id",
     ]
     result = await db.execute(
         select(SiteSetting).where(SiteSetting.key.in_(PUBLIC_KEYS))

@@ -19,7 +19,7 @@ from app.models.user import User
 from app.api.deps import get_current_active_user, get_optional_user
 from app.utils.payments.mpesa_stk import mpesa_client
 from app.utils.payments.paystack import paystack_client
-from app.services.email_service import send_order_confirmation, send_admin_new_order
+from app.services.email_service import send_order_confirmation, send_admin_new_order, send_low_stock_alert
 from app.services.sms_service import send_order_confirmation_sms
 from app.utils.formatters import format_ksh
 import asyncio
@@ -303,6 +303,18 @@ async def _finalize_order_stock(order: Order, db: AsyncSession) -> None:
                     if product:
                         product.total_stock = max(0, product.total_stock - item.quantity)
                         product.purchase_count += item.quantity
+                        threshold = product.low_stock_threshold or 5
+                        if variant.stock_quantity <= threshold:
+                            asyncio.create_task(
+                                send_low_stock_alert(
+                                    product_name=product.name,
+                                    sku=variant.sku,
+                                    size=variant.size or "",
+                                    color=variant.color_name or "",
+                                    stock_quantity=variant.stock_quantity,
+                                    admin_url=f"{settings.frontend_url}/admin/inventory",
+                                )
+                            )
 
 
 async def _release_reservation(order: Order, db: AsyncSession) -> None:

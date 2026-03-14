@@ -22,6 +22,7 @@ from app.api.deps import get_current_active_user, get_optional_user
 from app.services.email_service import (
     send_order_confirmation, send_admin_new_order,
     send_return_submitted, send_admin_new_return,
+    send_low_stock_alert,
 )
 from app.services.sms_service import send_order_confirmation_sms
 from app.services.notification_service import create_notification, create_admin_notification
@@ -36,6 +37,23 @@ VALID_STATUSES = [
     "pending_payment", "confirmed", "processing", "shipped",
     "out_for_delivery", "delivered", "cancelled", "refunded", "returned"
 ]
+
+
+def _maybe_fire_stock_alert(variant: "ProductVariant", product: "Product", admin_base_url: str) -> None:
+    """Fire a low-stock / out-of-stock email alert if the variant crossed the threshold."""
+    threshold = product.low_stock_threshold or 5
+    qty = variant.stock_quantity
+    if qty <= threshold:
+        asyncio.create_task(
+            send_low_stock_alert(
+                product_name=product.name,
+                sku=variant.sku,
+                size=variant.size or "",
+                color=variant.color_name or "",
+                stock_quantity=qty,
+                admin_url=f"{admin_base_url}/admin/inventory",
+            )
+        )
 
 
 def _generate_order_number() -> str:
@@ -196,6 +214,7 @@ async def checkout(
                 if product:
                     product.total_stock = max(0, product.total_stock - item.quantity)
                     product.purchase_count += item.quantity
+                    _maybe_fire_stock_alert(variant, product, _settings.frontend_url)
             else:
                 # Online payment — reserve stock; deduct only after payment is confirmed
                 variant.reserved_quantity += item.quantity

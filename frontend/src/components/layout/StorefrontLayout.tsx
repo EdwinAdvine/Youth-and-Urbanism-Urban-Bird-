@@ -5,6 +5,7 @@ import Footer from "../footer/Footer";
 import CartDrawer from "../cart/CartDrawer";
 import MobileBottomNav from "../header/MobileBottomNav";
 import NewsletterPopup from "../NewsletterPopup";
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 const WA_MESSAGE = encodeURIComponent("Hello Urban Bird! I'd like some help with my order.");
 const WA_CONTACTS = [
@@ -20,6 +21,7 @@ const WhatsAppSVG = () => (
 
 export default function StorefrontLayout() {
   const [waOpen, setWaOpen] = useState(false);
+  useAnalytics();
 
   return (
     <div className="flex flex-col min-h-screen">

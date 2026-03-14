@@ -79,6 +79,10 @@ DEFAULT_SETTINGS = {
 
     # ── Checkout Options ──────────────────────────────────────────────────────
     "cod_enabled": True,
+
+    # ── Analytics & Tracking ─────────────────────────────────────────────────
+    "ga4_measurement_id": "",   # e.g. G-XXXXXXXXXX
+    "meta_pixel_id": "",        # e.g. 1234567890123
 }
 
 

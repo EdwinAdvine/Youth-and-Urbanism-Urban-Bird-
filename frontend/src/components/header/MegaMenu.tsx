@@ -102,11 +102,11 @@ export default function MegaMenu() {
         ))}
       </nav>
 
-      {/* ── Mega dropdown panel (full-width, fixed below header) ── */}
+      {/* ── Mega dropdown panel (full-width, absolute below sticky header) ── */}
       {activeCategory && activeCategory.groups.length > 0 && (
         <div
-          className="fixed left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl z-40"
-          style={{ top: "88px" }}
+          className="absolute left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl z-40"
+          style={{ top: "56px" }}
           onMouseEnter={keepOpen}
           onMouseLeave={close}
         >

@@ -132,10 +132,10 @@ function HeroCarousel() {
   return (
     <section className="relative overflow-hidden bg-black" style={{ height: "clamp(400px, 80vh, 92vh)", minHeight: 400 }}>
       {/* Embla viewport */}
-      <div className="h-full px-1 sm:px-2" ref={emblaRef}>
-        <div className="flex h-full gap-1 sm:gap-2">
+      <div className="h-full" ref={emblaRef}>
+        <div className="flex h-full">
           {HERO_SLIDES.map((s, i) => (
-            <div key={i} className="relative flex-none w-full sm:w-1/2 lg:w-1/3 h-full rounded-xl sm:rounded-2xl overflow-hidden">
+            <div key={i} className="relative flex-none w-full sm:w-1/2 lg:w-1/3 h-full overflow-hidden">
               <img
                 src={s.image}
                 alt={s.title}

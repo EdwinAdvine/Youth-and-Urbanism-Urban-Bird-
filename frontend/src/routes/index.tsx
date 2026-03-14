@@ -58,6 +58,7 @@ const AdminSettingsPage = lazy(() => import("../pages/admin/AdminSettingsPage"))
 const AdminBannersPage = lazy(() => import("../pages/admin/AdminBannersPage"));
 const AdminNewsletterPage = lazy(() => import("../pages/admin/AdminNewsletterPage"));
 const AdminNotificationsPage = lazy(() => import("../pages/admin/AdminNotificationsPage"));
+const AdminReviewsPage = lazy(() => import("../pages/admin/AdminReviewsPage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -146,6 +147,7 @@ export default function AppRoutes() {
           <Route path="banners" element={<AdminBannersPage />} />
           <Route path="newsletter" element={<AdminNewsletterPage />} />
           <Route path="notifications" element={<AdminNotificationsPage />} />
+          <Route path="reviews" element={<AdminReviewsPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
