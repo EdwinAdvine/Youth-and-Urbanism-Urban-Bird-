@@ -14,7 +14,7 @@ from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.cart import Cart, CartItem
 from app.models.user import User
 from app.models.coupon import Coupon, CouponUsage
-from app.models.product import Product, ProductVariant
+from app.models.product import Product, ProductVariant, ProductImage
 from app.models.payment import Payment
 from app.models.shipping import ShippingRate
 from app.schemas.order import CheckoutRequest, OrderOut, OrderListItem
@@ -61,14 +61,14 @@ async def checkout(
     # Get cart — by user_id for authenticated users, by session_id for guests
     if current_user:
         cart_query = select(Cart).options(
-            selectinload(Cart.items).selectinload(CartItem.product),
+            selectinload(Cart.items).selectinload(CartItem.product).selectinload(Product.images),
             selectinload(Cart.items).selectinload(CartItem.variant),
         ).where(Cart.user_id == current_user.id)
     else:
         if not cart_session:
             raise HTTPException(status_code=400, detail="No cart session found")
         cart_query = select(Cart).options(
-            selectinload(Cart.items).selectinload(CartItem.product),
+            selectinload(Cart.items).selectinload(CartItem.product).selectinload(Product.images),
             selectinload(Cart.items).selectinload(CartItem.variant),
         ).where(Cart.session_id == cart_session)
 
