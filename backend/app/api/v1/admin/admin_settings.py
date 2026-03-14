@@ -100,7 +100,7 @@ async def get_public_settings(db: AsyncSession = Depends(get_db)):
     """Public endpoint — returns only safe settings needed by the frontend (no auth required)."""
     PUBLIC_KEYS = [
         "store_name", "store_tagline", "whatsapp_number", "whatsapp_message",
-        "announcement_messages", "social_links", "store_logo_url",
+        "announcement_messages", "social_links", "store_logo_url", "cod_enabled",
     ]
     result = await db.execute(
         select(SiteSetting).where(SiteSetting.key.in_(PUBLIC_KEYS))

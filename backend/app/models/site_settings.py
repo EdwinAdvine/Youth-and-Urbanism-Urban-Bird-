@@ -76,6 +76,9 @@ DEFAULT_SETTINGS = {
     "at_username": "sandbox",
     "at_api_key": "",
     "at_sender_id": "URBANBIRD",
+
+    # ── Checkout Options ──────────────────────────────────────────────────────
+    "cod_enabled": True,
 }
 
 

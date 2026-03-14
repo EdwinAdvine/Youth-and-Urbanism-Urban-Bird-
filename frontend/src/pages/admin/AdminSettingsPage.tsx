@@ -156,6 +156,9 @@ export default function AdminSettingsPage() {
   const [atApiKey, setAtApiKey] = useState("");
   const [atSenderId, setAtSenderId] = useState("URBANBIRD");
 
+  // Checkout Options
+  const [codEnabled, setCodEnabled] = useState(true);
+
   // Inventory
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
 
@@ -223,6 +226,9 @@ export default function AdminSettingsPage() {
         setAtApiKey(s.at_api_key ?? "");
         setAtSenderId(s.at_sender_id ?? "URBANBIRD");
 
+        // Checkout Options
+        setCodEnabled(s.cod_enabled !== false);
+
         // Inventory
         setLowStockThreshold(s.low_stock_threshold ?? 10);
       })
@@ -258,6 +264,7 @@ export default function AdminSettingsPage() {
         payload = { announcement_messages: announcementMessages.filter((m) => m.text.trim()) };
       } else if (activeSection === "payments") {
         payload = omitMasked({
+          cod_enabled: codEnabled,
           paystack_public_key: paystackPublicKey,
           paystack_secret_key: paystackSecretKey,
           paystack_webhook_secret: paystackWebhookSecret,
@@ -472,6 +479,30 @@ export default function AdminSettingsPage() {
           {activeSection === "payments" && (
             <div className="space-y-6">
               <SectionTitle>Payment Gateways</SectionTitle>
+
+              <SubSection title="Cash on Delivery">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-manrope font-medium text-gray-800">Enable Cash on Delivery</p>
+                    <p className="text-xs text-gray-400 font-manrope mt-0.5">
+                      When disabled, customers will not see COD as a payment option at checkout
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCodEnabled((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      codEnabled ? "bg-maroon-700" : "bg-gray-200"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                        codEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </SubSection>
 
               <SubSection title="Paystack">
                 <Field

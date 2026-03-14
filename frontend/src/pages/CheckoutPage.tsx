@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CheckCircle2, ChevronRight, LogIn, UserX } from "lucide-react";
 import { useCartStore } from "../store/cartStore";
@@ -40,6 +40,13 @@ export default function CheckoutPage() {
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [selectedRate, setSelectedRate] = useState<any>(null);
   const [guestEmail, setGuestEmail] = useState("");
+  const [codEnabled, setCodEnabled] = useState(true);
+
+  useEffect(() => {
+    api.get("/api/v1/admin/settings/public").then((r) => {
+      if (r.data.cod_enabled === false) setCodEnabled(false);
+    }).catch(() => {});
+  }, []);
 
   const subtotal = cart?.subtotal ?? 0;
   const total = subtotal - couponDiscount + shippingCost;
@@ -190,8 +197,7 @@ export default function CheckoutPage() {
                 <Input label="Last Name" name="last_name" defaultValue={shippingData?.last_name || user?.last_name || ""} required />
               </div>
               <Input label="Phone" name="phone" type="tel" defaultValue={shippingData?.phone || user?.phone || ""} required />
-              <Input label="Address Line 1" name="address_line_1" defaultValue={shippingData?.address_line_1 || ""} placeholder="Street address, P.O. box" required />
-              <Input label="Address Line 2 (optional)" name="address_line_2" defaultValue={shippingData?.address_line_2 || ""} placeholder="Apartment, suite, unit, etc." />
+              <Input label="Delivery Address" name="address_line_1" defaultValue={shippingData?.address_line_1 || ""} placeholder="Where would you like us to deliver your goods?" required />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input label="City / Town" name="city" defaultValue={shippingData?.city || ""} required />
                 <div className="flex flex-col gap-1">
@@ -250,7 +256,7 @@ export default function CheckoutPage() {
                       label: "Card / M-Pesa (Paystack)",
                       desc: "Pay securely with card or M-Pesa via Paystack",
                     },
-                    { value: "cod", label: "Cash on Delivery", desc: "Pay when your order arrives" },
+                    ...(codEnabled ? [{ value: "cod", label: "Cash on Delivery", desc: "Pay when your order arrives" }] : []),
                   ].map(({ value, label, desc }) => (
                     <label key={value} className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                       paymentMethod === value ? "border-maroon-700 bg-maroon-50" : "border-gray-200 hover:border-gray-300"
