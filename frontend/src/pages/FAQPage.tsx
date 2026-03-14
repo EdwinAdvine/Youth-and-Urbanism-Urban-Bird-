@@ -149,7 +149,7 @@ export default function FAQPage() {
               Email us
             </a>{" "}
             or{" "}
-            <a href="https://wa.me/254700000000" target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-medium">
+            <a href="https://wa.me/254799075061" target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-medium">
               chat on WhatsApp
             </a>
             .
@@ -186,7 +186,7 @@ export default function FAQPage() {
               Email Us
             </a>
             <a
-              href="https://wa.me/254700000000"
+              href="https://wa.me/254799075061"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white/20 text-white font-manrope font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-white/30 transition-colors"

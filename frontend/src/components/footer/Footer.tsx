@@ -39,7 +39,7 @@ export default function Footer() {
                 { href: "https://twitter.com/urbanbird_ke", Icon: Twitter, label: "Twitter" },
                 { href: "https://tiktok.com/@urbanbird.ke", Icon: TikTokIcon, label: "TikTok" },
                 { href: "https://pinterest.com/urbanbird_ke", Icon: PinterestIcon, label: "Pinterest" },
-                { href: "https://wa.me/254700000000", Icon: WhatsAppIcon, label: "WhatsApp" },
+                { href: "https://wa.me/254799075061", Icon: WhatsAppIcon, label: "WhatsApp" },
               ].map(({ href, Icon, label }) => (
                 <a
                   key={href}
@@ -107,7 +107,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-sm text-gray-400 font-manrope">
                 <Phone size={15} className="text-maroon-400 flex-shrink-0" />
-                +254 700 000 000
+                +254 799 075 061 / +254 745 651 659
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-400 font-manrope">
                 <Mail size={15} className="text-maroon-400 flex-shrink-0" />

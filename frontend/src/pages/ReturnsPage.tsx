@@ -152,7 +152,7 @@ export default function ReturnsPage() {
               hello@urbanbird.co.ke
             </a>{" "}
             or{" "}
-            <a href="https://wa.me/254700000000" target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
+            <a href="https://wa.me/254799075061" target="_blank" rel="noopener noreferrer" className="text-maroon-700 hover:underline font-semibold">
               WhatsApp us
             </a>
           </p>
