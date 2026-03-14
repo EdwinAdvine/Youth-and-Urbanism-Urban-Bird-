@@ -255,6 +255,7 @@ async def checkout(
                 send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
             )
         # Notify all admins
+        order_url = f"{_settings.frontend_url}/account/orders/{full_order.order_number}"
         admin_order_url = f"{_settings.frontend_url}/admin/orders/{full_order.id}"
         admin_result = await db.execute(select(User).where(User.role.in_(["admin", "super_admin"]), User.is_active == True))
         admin_users = admin_result.scalars().all()
