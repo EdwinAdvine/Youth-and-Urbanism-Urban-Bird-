@@ -1,20 +1,50 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { NAV_CATEGORIES, NAV_EXTRAS } from "../../data/navData";
+import type { NavItem } from "../../data/navData";
 import { useNavCategoryStore } from "../../store/navCategoryStore";
 
 export default function MegaMenu() {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const { navCategories, isLoaded, fetchCategories } = useNavCategoryStore();
+  const { rawCategories, isLoaded, fetchCategories } = useNavCategoryStore();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
-  const categories = isLoaded && navCategories.length > 0 ? navCategories : NAV_CATEGORIES;
+  // Merge the original grouped structure with live data from the DB.
+  // This preserves the rich TOPS / LAYERS / BOTTOMS / ACCESSORIES groups
+  // while reflecting any name changes or subcategory deactivations the admin makes.
+  const categories = useMemo(() => {
+    if (!isLoaded || rawCategories.length === 0) return NAV_CATEGORIES;
+    return NAV_CATEGORIES.map((cat) => {
+      const dyn = rawCategories.find((d) => d.slug === cat.slug);
+      if (!dyn) return cat;
+      const activeSlugs = new Set(
+        dyn.subcategories.filter((s) => s.is_active !== false).map((s) => s.slug)
+      );
+      const nameMap: Record<string, string> = Object.fromEntries(
+        dyn.subcategories.map((s) => [s.slug, s.name])
+      );
+      return {
+        ...cat,
+        label: dyn.name.toUpperCase(),
+        groups: cat.groups
+          .map((g) => ({
+            ...g,
+            items: g.items
+              .map((item): NavItem | null => {
+                const subSlug = item.href.split("?sub=")[1];
+                if (subSlug && !activeSlugs.has(subSlug)) return null;
+                return subSlug && nameMap[subSlug] ? { ...item, label: nameMap[subSlug] } : item;
+              })
+              .filter((x): x is NavItem => x !== null),
+          }))
+          .filter((g) => g.items.length > 0),
+      };
+    });
+  }, [isLoaded, rawCategories]);
 
   const open = (slug: string) => {
     clearTimeout(timeoutRef.current);
