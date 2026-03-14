@@ -26,7 +26,14 @@ async def get_wishlist(
 ):
     result = await db.execute(
         select(Wishlist)
-        .options(selectinload(Wishlist.items).selectinload(WishlistItem.product).selectinload(Product.images))
+        .options(
+            selectinload(Wishlist.items)
+            .selectinload(WishlistItem.product)
+            .options(
+                selectinload(Product.images),
+                selectinload(Product.variants),
+            )
+        )
         .where(Wishlist.user_id == current_user.id)
     )
     wishlist = result.scalar_one_or_none()

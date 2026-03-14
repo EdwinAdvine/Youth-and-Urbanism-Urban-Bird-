@@ -24,7 +24,7 @@ class Category(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     subcategories: Mapped[list["Subcategory"]] = relationship("Subcategory", back_populates="category", cascade="all, delete-orphan")
-    products: Mapped[list["Product"]] = relationship("Product", back_populates="category")
+    products: Mapped[list["Product"]] = relationship("Product", back_populates="category", passive_deletes=True)
 
 
 class Subcategory(Base):
@@ -44,7 +44,7 @@ class Subcategory(Base):
     __table_args__ = (UniqueConstraint("category_id", "slug", name="uq_subcategory_category_slug"),)
 
     category: Mapped["Category"] = relationship("Category", back_populates="subcategories")
-    products: Mapped[list["Product"]] = relationship("Product", back_populates="subcategory")
+    products: Mapped[list["Product"]] = relationship("Product", back_populates="subcategory", passive_deletes=True)
 
 
 class Product(Base):

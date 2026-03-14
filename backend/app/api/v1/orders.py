@@ -286,6 +286,60 @@ async def checkout(
     return full_order
 
 
+@router.get("/track", response_model=None)
+@limiter.limit("10/minute")
+async def track_order_public(
+    request: Request,
+    order_number: str = Query(...),
+    email: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public order tracking — looks up by order number + email (no auth required)."""
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.order_number == order_number)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Verify by email — either guest_email or the registered user's email
+    email_lower = email.lower().strip()
+    matched = False
+    if order.guest_email and order.guest_email.lower() == email_lower:
+        matched = True
+    if not matched and order.user_id:
+        user_result = await db.execute(select(User).where(User.id == order.user_id))
+        user = user_result.scalar_one_or_none()
+        if user and user.email.lower() == email_lower:
+            matched = True
+    if not matched:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    return {
+        "order_number": order.order_number,
+        "status": order.status,
+        "created_at": order.created_at.isoformat(),
+        "total": float(order.total),
+        "shipping_full_name": order.shipping_full_name,
+        "shipping_city": order.shipping_city,
+        "shipping_county": order.shipping_county,
+        "tracking_number": order.tracking_number,
+        "items": [
+            {
+                "product_name": item.product_name,
+                "size": item.size,
+                "color_name": item.color_name,
+                "quantity": item.quantity,
+                "unit_price": float(item.unit_price),
+                "product_image": item.product_image,
+            }
+            for item in order.items
+        ],
+    }
+
+
 @router.get("", response_model=list[OrderListItem])
 async def list_orders(
     db: AsyncSession = Depends(get_db),

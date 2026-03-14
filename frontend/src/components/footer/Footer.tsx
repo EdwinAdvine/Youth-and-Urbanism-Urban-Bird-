@@ -83,7 +83,7 @@ export default function Footer() {
             <h4 className="text-white font-semibold font-lexend mb-4">Help</h4>
             <ul className="space-y-2.5">
               {[
-                { to: "/account/orders", label: "Track My Order" },
+                { to: "/track-order", label: "Track My Order" },
                 { to: "/account", label: "My Account" },
                 { to: "/faq", label: "FAQ" },
                 { to: "/returns", label: "Returns & Exchanges" },

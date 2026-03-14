@@ -18,6 +18,12 @@ const WishlistPage = lazy(() => import("../pages/WishlistPage"));
 const ComparePage = lazy(() => import("../pages/ComparePage"));
 const SearchPage = lazy(() => import("../pages/SearchPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
+const TrackOrderPage = lazy(() => import("../pages/TrackOrderPage"));
+const FAQPage = lazy(() => import("../pages/FAQPage"));
+const ReturnsPage = lazy(() => import("../pages/ReturnsPage"));
+const ShippingPage = lazy(() => import("../pages/ShippingPage"));
+const PrivacyPage = lazy(() => import("../pages/PrivacyPage"));
+const TermsPage = lazy(() => import("../pages/TermsPage"));
 
 // Auth pages
 const LoginPage = lazy(() => import("../pages/account/LoginPage"));
@@ -77,10 +83,16 @@ export default function AppRoutes() {
           <Route path="category/:slug" element={<CategoryPage />} />
           <Route path="products/:slug" element={<ProductDetailPage />} />
           <Route path="cart" element={<CartPage />} />
-          <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="wishlist" element={<RequireAuth><WishlistPage /></RequireAuth>} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage />} />
+          <Route path="track-order" element={<TrackOrderPage />} />
+          <Route path="faq" element={<FAQPage />} />
+          <Route path="returns" element={<ReturnsPage />} />
+          <Route path="shipping" element={<ShippingPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="terms" element={<TermsPage />} />
         </Route>
 
         {/* Auth pages (no layout chrome) */}

@@ -47,13 +47,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set({ isLoading: true });
     try {
       const data = await notificationService.getNotifications(page);
-      set({
-        notifications: data.items,
+      set((state) => ({
+        notifications: page === 1 ? data.items : [...state.notifications, ...data.items],
         total: data.total,
         unreadCount: data.unread_count,
         page,
         isLoading: false,
-      });
+      }));
     } catch {
       set({ isLoading: false });
     }
@@ -90,13 +90,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set({ isAdminLoading: true });
     try {
       const data = await notificationService.getAdminNotifications(page);
-      set({
-        adminNotifications: data.items,
+      set((state) => ({
+        adminNotifications: page === 1 ? data.items : [...state.adminNotifications, ...data.items],
         adminTotal: data.total,
         adminUnreadCount: data.unread_count,
         adminPage: page,
         isAdminLoading: false,
-      });
+      }));
     } catch {
       set({ isAdminLoading: false });
     }

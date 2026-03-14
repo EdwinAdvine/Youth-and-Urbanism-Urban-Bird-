@@ -13,23 +13,23 @@ import { useSEO } from "../hooks/useSEO";
 
 export default function WishlistPage() {
   useSEO({ title: "Your Wishlist", noindex: true });
-  const { productIds, removeItem } = useWishlistStore();
+  const { removeItem } = useWishlistStore();
   const { addItem } = useCartStore();
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!productIds.length) {
-      setProducts([]);
-      return;
-    }
     setIsLoading(true);
     api
       .get<Product[]>("/api/v1/wishlist")
-      .then((res) => setProducts(res.data))
+      .then((res) => {
+        setProducts(res.data);
+        // Sync local store with server state
+        useWishlistStore.setState({ productIds: res.data.map((p) => p.id) });
+      })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, [productIds.length]);
+  }, []);
 
   const handleRemove = async (productId: string) => {
     await removeItem(productId);
@@ -51,7 +51,7 @@ export default function WishlistPage() {
     }
   };
 
-  if (productIds.length === 0) {
+  if (!isLoading && products.length === 0) {
     return (
       <div className="container-custom py-20 text-center">
         <Heart size={64} className="mx-auto text-gray-200 mb-4" />
@@ -71,13 +71,13 @@ export default function WishlistPage() {
   return (
     <div className="container-custom py-8">
       <h1 className="text-3xl font-bold font-lexend text-gray-900 mb-8">
-        Wishlist ({productIds.length})
+        Wishlist ({products.length})
       </h1>
 
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {productIds.map((id) => (
-            <ProductCardSkeleton key={id} />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
           ))}
         </div>
       ) : (

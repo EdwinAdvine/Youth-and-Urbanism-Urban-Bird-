@@ -68,6 +68,20 @@ export default function AdminProductsPage() {
         </Link>
       </div>
 
+      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex gap-3">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") load(); }}
+            placeholder="Search products…"
+            className="w-full pl-9 pr-3 py-2 text-sm font-manrope border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-700"
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={load}>Search</Button>
+      </div>
+
       {/* Category filter — Row 1 */}
       <div className="flex gap-2 mb-2 flex-wrap">
         <button
@@ -123,20 +137,6 @@ export default function AdminProductsPage() {
           ))}
         </div>
       )}
-
-      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") load(); }}
-            placeholder="Search products…"
-            className="w-full pl-9 pr-3 py-2 text-sm font-manrope border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-700"
-          />
-        </div>
-        <Button size="sm" variant="outline" onClick={load}>Search</Button>
-      </div>
 
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">

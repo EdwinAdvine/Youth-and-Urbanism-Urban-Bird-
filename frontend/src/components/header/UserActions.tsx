@@ -93,7 +93,13 @@ export default function UserActions() {
                   { to: "/account", icon: <User size={16} />, label: "Dashboard" },
                   { to: "/account/orders", icon: <Package size={16} />, label: "My Orders" },
                   { to: "/account/addresses", icon: <MapPin size={16} />, label: "Addresses" },
-                  { to: "/account/notifications", icon: <Package size={16} />, label: "Notifications" },
+                  {
+                    to: ["admin", "super_admin"].includes(user?.role || "")
+                      ? "/admin/notifications"
+                      : "/account/notifications",
+                    icon: <Package size={16} />,
+                    label: "Notifications",
+                  },
                   { to: "/account/settings", icon: <Settings size={16} />, label: "Settings" },
                 ].map((item) => (
                   <Link

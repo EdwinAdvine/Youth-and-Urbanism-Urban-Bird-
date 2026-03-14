@@ -5,7 +5,7 @@ interface LogoProps {
   className?: string;
 }
 
-const LOGO_URL = "/Urban Bird Logo Original.png";
+const LOGO_URL = "/urban-bird-logo.png";
 
 export default function Logo({ variant = "dark", className = "" }: LogoProps) {
   return (

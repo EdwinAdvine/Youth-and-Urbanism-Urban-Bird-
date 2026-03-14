@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -33,6 +33,7 @@ export default function AdminProductFormPage() {
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74,6 +75,19 @@ export default function AdminProductFormPage() {
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Permanently delete this product? This cannot be undone.")) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/v1/admin/products/${id}`);
+      toast.success("Product deleted.");
+      navigate("/admin/products");
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to delete product.");
+      setIsDeleting(false);
     }
   };
 
@@ -129,6 +143,18 @@ export default function AdminProductFormPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold font-lexend text-gray-900">{isEdit ? "Edit Product" : "New Product"}</h1>
         <div className="flex gap-3">
+          {isEdit && (
+            <Button
+              type="button"
+              variant="outline"
+              isLoading={isDeleting}
+              onClick={handleDelete}
+              className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 flex items-center gap-1.5"
+            >
+              <Trash2 size={15} />
+              Delete Product
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={() => navigate("/admin/products")}>Cancel</Button>
           <Button type="submit" isLoading={isSaving}>Save Product</Button>
         </div>
