@@ -130,7 +130,7 @@ function HeroCarousel() {
   }, [emblaApi, startAutoplay]);
 
   return (
-    <section className="relative overflow-hidden bg-black" style={{ height: "clamp(350px, 55vh, 78vh)", minHeight: 350 }}>
+    <section className="relative overflow-hidden bg-black" style={{ height: "clamp(400px, 80vh, 92vh)", minHeight: 400 }}>
       {/* Embla viewport */}
       <div className="h-full px-1 sm:px-2" ref={emblaRef}>
         <div className="flex h-full gap-1 sm:gap-2">
