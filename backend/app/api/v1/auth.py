@@ -69,7 +69,7 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
         value=refresh_token,
         httponly=True,
         secure=settings.environment == "production",
-        samesite="strict",
+        samesite="lax",
         max_age=settings.refresh_token_expire_days * 86400,
         path="/api/v1/auth",
     )
@@ -155,7 +155,7 @@ async def login(request: Request, data: LoginRequest, response: Response, db: As
         value=refresh_token,
         httponly=True,
         secure=settings.environment == "production",
-        samesite="strict",
+        samesite="lax",
         max_age=settings.refresh_token_expire_days * 86400,
         path="/api/v1/auth",
     )
