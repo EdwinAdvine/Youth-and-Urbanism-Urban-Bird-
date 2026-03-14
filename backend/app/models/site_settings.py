@@ -83,6 +83,23 @@ DEFAULT_SETTINGS = {
     # ── Analytics & Tracking ─────────────────────────────────────────────────
     "ga4_measurement_id": "",   # e.g. G-XXXXXXXXXX
     "meta_pixel_id": "",        # e.g. 1234567890123
+
+    # ── Product Options ───────────────────────────────────────────────────────────────────
+    "available_sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "available_colors": [
+        {"name": "Black",        "hex": "#000000"},
+        {"name": "White",        "hex": "#FFFFFF"},
+        {"name": "Navy Blue",    "hex": "#1E3A5F"},
+        {"name": "Maroon",       "hex": "#782121"},
+        {"name": "Grey",         "hex": "#9CA3AF"},
+        {"name": "Olive Green",  "hex": "#556B2F"},
+        {"name": "Burgundy",     "hex": "#800020"},
+        {"name": "Camel",        "hex": "#C19A6B"},
+        {"name": "Forest Green", "hex": "#228B22"},
+        {"name": "Royal Blue",   "hex": "#4169E1"},
+        {"name": "Cream",        "hex": "#FFFDD0"},
+        {"name": "Brown",        "hex": "#8B4513"},
+    ],
 }
 
 

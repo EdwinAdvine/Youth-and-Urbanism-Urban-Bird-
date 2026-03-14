@@ -7,15 +7,6 @@ import Input from "../../components/ui/Input";
 import toast from "react-hot-toast";
 import { useSEO } from "../../hooks/useSEO";
 
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
-const DEFAULT_COLORS = [
-  { name: "Black", hex: "#000000" },
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Navy Blue", hex: "#1E3A5F" },
-  { name: "Maroon", hex: "#782121" },
-  { name: "Grey", hex: "#9CA3AF" },
-];
-
 export default function AdminProductFormPage() {
   useSEO({ title: "Product", noindex: true });
   const { id } = useParams<{ id?: string }>();
@@ -23,12 +14,20 @@ export default function AdminProductFormPage() {
   const isEdit = !!id;
 
   const [categories, setCategories] = useState<any[]>([]);
+  const [availableSizes, setAvailableSizes] = useState<string[]>([]);
+  const [availableColors, setAvailableColors] = useState<{ name: string; hex: string }[]>([]);
+
   const [form, setForm] = useState({
     name: "", slug: "", description: "", price: "", compare_at_price: "",
     category_id: "", subcategory_id: "", status: "active",
     is_featured: false, is_on_sale: false, sale_percentage: "",
   });
   const [variants, setVariants] = useState<{ size: string; color_name: string; color_hex: string; stock_quantity: number; sku: string }[]>([]);
+
+  // Variant builder selections
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +37,12 @@ export default function AdminProductFormPage() {
 
   useEffect(() => {
     api.get("/api/v1/categories").then((r) => setCategories(r.data)).catch(() => {});
+    // Fetch available sizes and colors from public settings
+    api.get("/api/v1/admin/settings/public").then((r) => {
+      if (Array.isArray(r.data.available_sizes)) setAvailableSizes(r.data.available_sizes);
+      if (Array.isArray(r.data.available_colors)) setAvailableColors(r.data.available_colors);
+    }).catch(() => {});
+
     if (isEdit) {
       setIsLoading(true);
       api.get(`/api/v1/admin/products/${id}`)
@@ -58,15 +63,19 @@ export default function AdminProductFormPage() {
     }
   }, [id]);
 
-  const generateVariants = () => {
-    const selectedColors = DEFAULT_COLORS.slice(0, 3);
-    const newVariants = SIZES.flatMap((size) =>
-      selectedColors.map((color) => ({
+  const buildVariants = () => {
+    if (selectedSizes.length === 0 || selectedColors.length === 0) {
+      toast.error("Select at least one size and one color");
+      return;
+    }
+    const colorMap = Object.fromEntries(availableColors.map((c) => [c.name, c.hex]));
+    const newVariants = selectedSizes.flatMap((size) =>
+      selectedColors.map((colorName) => ({
         size,
-        color_name: color.name,
-        color_hex: color.hex,
+        color_name: colorName,
+        color_hex: colorMap[colorName] || "#000000",
         stock_quantity: 10,
-        sku: `${form.slug || "PROD"}-${size}-${color.name.toUpperCase().replace(/\s/g, "-")}`,
+        sku: `${form.slug || "PROD"}-${size}-${colorName.toUpperCase().replace(/\s/g, "-")}`,
       }))
     );
     setVariants(newVariants);
@@ -231,14 +240,110 @@ export default function AdminProductFormPage() {
 
           {/* Variants */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold font-lexend text-gray-900">Variants</h2>
-              {variants.length === 0 && (
-                <Button type="button" size="sm" variant="outline" onClick={generateVariants}>
-                  Auto-generate (6 sizes × 3 colors)
+            <h2 className="font-semibold font-lexend text-gray-900 mb-4">Variants</h2>
+
+            {/* Variant Builder */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-5 space-y-4">
+              <p className="text-xs font-manrope font-semibold uppercase tracking-wider text-gray-400">Build Variants</p>
+
+              {/* Sizes */}
+              <div>
+                <p className="text-sm font-manrope font-medium text-gray-700 mb-2">Sizes</p>
+                {availableSizes.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map((size) => {
+                      const selected = selectedSizes.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSizes(
+                              selected
+                                ? selectedSizes.filter((s) => s !== size)
+                                : [...selectedSizes, size]
+                            )
+                          }
+                          className={`px-3 py-1.5 rounded-lg text-sm font-manrope font-medium border transition-colors ${
+                            selected
+                              ? "bg-maroon-700 text-white border-maroon-700"
+                              : "bg-white text-gray-700 border-gray-200 hover:border-maroon-400"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 font-manrope">
+                    No sizes configured. Add sizes in{" "}
+                    <a href="/admin/settings" className="text-maroon-700 underline">Settings → Product Options</a>.
+                  </p>
+                )}
+              </div>
+
+              {/* Colors */}
+              <div>
+                <p className="text-sm font-manrope font-medium text-gray-700 mb-2">Colors</p>
+                {availableColors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map((color) => {
+                      const selected = selectedColors.includes(color.name);
+                      return (
+                        <button
+                          key={color.name}
+                          type="button"
+                          onClick={() =>
+                            setSelectedColors(
+                              selected
+                                ? selectedColors.filter((c) => c !== color.name)
+                                : [...selectedColors, color.name]
+                            )
+                          }
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-manrope border transition-colors ${
+                            selected
+                              ? "bg-maroon-50 border-maroon-600 text-maroon-700 font-medium"
+                              : "bg-white border-gray-200 text-gray-700 hover:border-maroon-400"
+                          }`}
+                        >
+                          <span
+                            className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          {color.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 font-manrope">
+                    No colors configured. Add colors in{" "}
+                    <a href="/admin/settings" className="text-maroon-700 underline">Settings → Product Options</a>.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={buildVariants}
+                  disabled={selectedSizes.length === 0 || selectedColors.length === 0}
+                >
+                  Build {selectedSizes.length > 0 && selectedColors.length > 0
+                    ? `${selectedSizes.length} × ${selectedColors.length} = ${selectedSizes.length * selectedColors.length} variants`
+                    : "Variants"}
                 </Button>
-              )}
+                {variants.length > 0 && (
+                  <span className="text-xs text-gray-400 font-manrope">
+                    Will replace existing {variants.length} variant{variants.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Variant table */}
             {variants.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -287,7 +392,7 @@ export default function AdminProductFormPage() {
                 </table>
               </div>
             ) : (
-              <p className="text-sm text-gray-500 font-manrope">No variants added yet.</p>
+              <p className="text-sm text-gray-500 font-manrope">Select sizes and colors above, then click "Build Variants".</p>
             )}
           </div>
         </div>

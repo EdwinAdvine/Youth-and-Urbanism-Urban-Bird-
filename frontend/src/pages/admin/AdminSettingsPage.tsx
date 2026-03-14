@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Save, Store, Phone, Globe, Bell, Mail, AlertCircle,
-  CreditCard, MessageSquare, Eye, EyeOff, BarChart2,
+  CreditCard, MessageSquare, Eye, EyeOff, BarChart2, Palette,
 } from "lucide-react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: "sms",           label: "SMS",               icon: MessageSquare },
   { id: "inventory",     label: "Inventory Alerts",  icon: AlertCircle },
   { id: "analytics",     label: "Analytics & Pixels", icon: BarChart2 },
+  { id: "product_options", label: "Product Options",  icon: Palette },
 ];
 
 const MASKED = "__masked__";
@@ -167,6 +168,13 @@ export default function AdminSettingsPage() {
   const [ga4MeasurementId, setGa4MeasurementId] = useState("");
   const [metaPixelId, setMetaPixelId] = useState("");
 
+  // Product Options
+  const [availableSizes, setAvailableSizes] = useState<string[]>(["XS", "S", "M", "L", "XL", "XXL"]);
+  const [availableColors, setAvailableColors] = useState<{ name: string; hex: string }[]>([]);
+  const [newSizeInput, setNewSizeInput] = useState("");
+  const [newColorName, setNewColorName] = useState("");
+  const [newColorHex, setNewColorHex] = useState("#000000");
+
   useEffect(() => {
     setIsLoading(true);
     api
@@ -240,6 +248,10 @@ export default function AdminSettingsPage() {
         // Analytics
         setGa4MeasurementId(s.ga4_measurement_id ?? "");
         setMetaPixelId(s.meta_pixel_id ?? "");
+
+        // Product Options
+        if (Array.isArray(s.available_sizes)) setAvailableSizes(s.available_sizes);
+        if (Array.isArray(s.available_colors)) setAvailableColors(s.available_colors);
       })
       .catch(() => toast.error("Failed to load settings"))
       .finally(() => setIsLoading(false));
@@ -302,6 +314,8 @@ export default function AdminSettingsPage() {
         payload = { low_stock_threshold: lowStockThreshold };
       } else if (activeSection === "analytics") {
         payload = { ga4_measurement_id: ga4MeasurementId, meta_pixel_id: metaPixelId };
+      } else if (activeSection === "product_options") {
+        payload = { available_sizes: availableSizes, available_colors: availableColors };
       }
 
       await api.patch("/api/v1/admin/settings", { settings: payload });
@@ -689,6 +703,134 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-gray-400 font-manrope bg-gray-50 rounded-lg p-3">
                 Tracking scripts load automatically on the storefront once IDs are saved. Leave blank to disable.
               </p>
+            </div>
+          )}
+
+          {/* ── Product Options ─────────────────────────────────────────── */}
+          {activeSection === "product_options" && (
+            <div className="space-y-8">
+              <SectionTitle>Product Options</SectionTitle>
+
+              {/* Sizes */}
+              <div>
+                <p className="text-xs font-manrope font-semibold uppercase tracking-wider text-gray-400 mb-3">Available Sizes</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {availableSizes.map((size) => (
+                    <span
+                      key={size}
+                      className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-manrope font-medium px-3 py-1.5 rounded-full"
+                    >
+                      {size}
+                      <button
+                        type="button"
+                        onClick={() => setAvailableSizes(availableSizes.filter((s) => s !== size))}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {availableSizes.length === 0 && (
+                    <p className="text-sm text-gray-400 font-manrope">No sizes added yet.</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={newSizeInput}
+                    onChange={(e) => setNewSizeInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const s = newSizeInput.trim();
+                        if (s && !availableSizes.includes(s)) {
+                          setAvailableSizes([...availableSizes, s]);
+                          setNewSizeInput("");
+                        }
+                      }
+                    }}
+                    placeholder="e.g. XL"
+                    className="w-28 border border-gray-200 rounded-lg px-3 py-2 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const s = newSizeInput.trim();
+                      if (s && !availableSizes.includes(s)) {
+                        setAvailableSizes([...availableSizes, s]);
+                        setNewSizeInput("");
+                      }
+                    }}
+                    className="px-4 py-2 bg-maroon-700 hover:bg-maroon-800 text-white text-sm font-manrope rounded-lg transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 font-manrope mt-2">Press Enter or click Add. These sizes appear as options when creating/editing products.</p>
+              </div>
+
+              {/* Colors */}
+              <div>
+                <p className="text-xs font-manrope font-semibold uppercase tracking-wider text-gray-400 mb-3">Available Colors</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                  {availableColors.map((color, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2"
+                    >
+                      <span
+                        className="w-6 h-6 rounded-full border border-gray-200 flex-shrink-0"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                      <span className="text-sm font-manrope text-gray-700 flex-1 truncate">{color.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAvailableColors(availableColors.filter((_, j) => j !== i))}
+                        className="text-gray-300 hover:text-red-500 transition-colors text-xs flex-shrink-0"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {availableColors.length === 0 && (
+                    <p className="text-sm text-gray-400 font-manrope col-span-3">No colors added yet.</p>
+                  )}
+                </div>
+                <div className="flex items-end gap-2">
+                  <div>
+                    <label className="block text-xs font-manrope text-gray-500 mb-1">Color</label>
+                    <input
+                      type="color"
+                      value={newColorHex}
+                      onChange={(e) => setNewColorHex(e.target.value)}
+                      className="w-12 h-10 rounded border border-gray-200 cursor-pointer p-0.5"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-manrope text-gray-500 mb-1">Name</label>
+                    <input
+                      value={newColorName}
+                      onChange={(e) => setNewColorName(e.target.value)}
+                      placeholder="e.g. Olive Green"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name = newColorName.trim();
+                      if (name && newColorHex) {
+                        setAvailableColors([...availableColors, { name, hex: newColorHex }]);
+                        setNewColorName("");
+                        setNewColorHex("#000000");
+                      }
+                    }}
+                    className="px-4 py-2 bg-maroon-700 hover:bg-maroon-800 text-white text-sm font-manrope rounded-lg transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 font-manrope mt-2">These colors appear as selectable swatches when creating/editing products.</p>
+              </div>
             </div>
           )}
         </div>
