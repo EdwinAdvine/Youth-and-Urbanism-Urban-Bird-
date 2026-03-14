@@ -130,24 +130,21 @@ function HeroCarousel() {
   }, [emblaApi, startAutoplay]);
 
   return (
-    <section className="relative overflow-hidden bg-black" style={{ height: "clamp(420px, 80svh, 90svh)", minHeight: 420 }}>
+    <section className="relative overflow-hidden bg-black" style={{ height: "clamp(350px, 55vh, 78vh)", minHeight: 350 }}>
       {/* Embla viewport */}
-      <div className="h-full" ref={emblaRef}>
-        <div className="flex h-full">
+      <div className="h-full px-1 sm:px-2" ref={emblaRef}>
+        <div className="flex h-full gap-1 sm:gap-2">
           {HERO_SLIDES.map((s, i) => (
-            <div key={i} className="relative flex-none w-full h-full overflow-hidden">
+            <div key={i} className="relative flex-none w-full sm:w-1/2 lg:w-1/3 h-full rounded-xl sm:rounded-2xl overflow-hidden">
               <img
                 src={s.image}
                 alt={s.title}
-                className="absolute inset-0 w-full h-full object-cover object-top"
+                className="absolute inset-0 w-full h-full object-cover"
                 loading={i === 0 ? "eager" : "lazy"}
                 decoding={i === 0 ? "sync" : "async"}
                 fetchPriority={i === 0 ? "high" : "low"}
               />
-              {/* Bottom gradient for text legibility */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-              {/* Side vignette so the dark gap between slides is always visible */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
               <div className="absolute bottom-5 sm:bottom-8 left-4 sm:left-5 right-4 sm:right-5">
                 <p className="text-white/70 font-manrope text-[10px] sm:text-xs uppercase tracking-widest mb-1">
                   {s.subtitle}
