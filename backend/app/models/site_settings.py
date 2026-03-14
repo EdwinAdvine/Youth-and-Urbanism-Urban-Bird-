@@ -29,7 +29,7 @@ DEFAULT_SETTINGS = {
     "store_name": "Urban Bird",
     "store_tagline": "Premium Urban Streetwear Kenya",
     "store_logo_url": "",
-    "whatsapp_number": "254700000000",
+    "whatsapp_number": "254799075061",
     "whatsapp_message": "Hello Urban Bird! I'd like some help with my order.",
     "low_stock_threshold": 10,
     "announcement_messages": [
@@ -43,7 +43,7 @@ DEFAULT_SETTINGS = {
         "tiktok": "https://tiktok.com/@urbanbird_ke",
         "twitter": "https://twitter.com/urbanbird_ke",
         "pinterest": "https://pinterest.com/urbanbird_ke",
-        "whatsapp": "https://wa.me/254700000000",
+        "whatsapp": "https://wa.me/254799075061",
     },
 
     # ── Paystack ──────────────────────────────────────────────────────────────

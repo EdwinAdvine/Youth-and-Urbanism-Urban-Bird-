@@ -14,6 +14,35 @@ from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.limiter import limiter
 
 
+async def _patch_stale_settings() -> None:
+    """One-time data fix: update any settings that still hold old placeholder values."""
+    from app.database import AsyncSessionLocal
+    from app.models.site_settings import SiteSetting
+    from sqlalchemy import select, update
+    PATCHES = {
+        "whatsapp_number": ("254700000000", "254799075061"),
+        "social_links": None,  # handled below
+    }
+    try:
+        async with AsyncSessionLocal() as db:
+            # Fix plain whatsapp_number
+            await db.execute(
+                update(SiteSetting)
+                .where(SiteSetting.key == "whatsapp_number", SiteSetting.value == "254700000000")
+                .values(value="254799075061")
+            )
+            # Fix whatsapp URL inside social_links JSON if still the old number
+            result = await db.execute(select(SiteSetting).where(SiteSetting.key == "social_links"))
+            row = result.scalar_one_or_none()
+            if row and isinstance(row.value, dict):
+                old_wa = row.value.get("whatsapp", "")
+                if "254700000000" in old_wa:
+                    row.value = {**row.value, "whatsapp": "https://wa.me/254799075061"}
+            await db.commit()
+    except Exception:
+        pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup — wrap in try/except so concurrent Gunicorn workers don't crash
@@ -23,6 +52,7 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
     except Exception:
         pass  # Tables already created by another worker — safe to continue
+    await _patch_stale_settings()
     await get_redis()
     start_scheduler()
     yield

@@ -33,7 +33,7 @@ export default function StorefrontLayout() {
       <NewsletterPopup />
 
       {/* WhatsApp floating button */}
-      <div className="fixed bottom-[calc(3.75rem+0.75rem)] right-4 lg:bottom-6 lg:right-6 z-50 flex flex-col items-end gap-2">
+      <div className="fixed bottom-[calc(3.75rem+0.75rem)] right-4 lg:bottom-6 lg:right-6 z-[60] flex flex-col items-end gap-2">
         {waOpen && (
           <div className="bg-white rounded-xl shadow-xl p-3 flex flex-col gap-2 mb-1 min-w-[180px]">
             <p className="text-xs font-semibold text-gray-500 px-1">Chat with us</p>
