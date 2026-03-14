@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, Package, CheckCircle, Truck, MapPin, Clock, XCircle } from "lucide-react";
 import api from "../services/api";
 import Button from "../components/ui/Button";
@@ -54,11 +54,31 @@ export default function TrackOrderPage() {
     description: "Track the status of your Urban Bird order. Enter your order number and email to get real-time updates.",
   });
 
-  const [orderNumber, setOrderNumber] = useState("");
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  const [orderNumber, setOrderNumber] = useState(searchParams.get("order_number") ?? "");
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [error, setError] = useState("");
+
+  // Auto-submit if both params are in the URL (e.g. from email link)
+  useEffect(() => {
+    const qn = searchParams.get("order_number");
+    const qe = searchParams.get("email");
+    if (qn && qe) {
+      setOrderNumber(qn);
+      setEmail(qe);
+      setLoading(true);
+      api.get("/api/v1/orders/track", { params: { order_number: qn.trim().toUpperCase(), email: qe.trim() } })
+        .then((res) => setOrder(res.data))
+        .catch((err) => setError(
+          err.response?.status === 404
+            ? "No order found with that order number and email. Please check your details and try again."
+            : "Something went wrong. Please try again."
+        ))
+        .finally(() => setLoading(false));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

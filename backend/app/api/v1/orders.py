@@ -107,17 +107,23 @@ async def checkout(
             select(Coupon).where(
                 Coupon.code == data.coupon_code.upper(),
                 Coupon.is_active == True,
-                Coupon.expires_at > datetime.now(timezone.utc),
             )
         )
         coupon = coupon_result.scalar_one_or_none()
+        now = datetime.now(timezone.utc)
+        if coupon and coupon.expires_at and coupon.expires_at < now:
+            coupon = None  # expired
+        if coupon and coupon.starts_at and coupon.starts_at > now:
+            coupon = None  # not yet active
+        if coupon and coupon.usage_limit and coupon.times_used >= coupon.usage_limit:
+            coupon = None  # usage limit reached
         if coupon:
             if coupon.discount_type == "percentage":
                 discount_amount = subtotal * (coupon.discount_value / 100)
                 if coupon.max_discount_amount:
                     discount_amount = min(discount_amount, coupon.max_discount_amount)
             else:
-                discount_amount = coupon.discount_value
+                discount_amount = min(coupon.discount_value, subtotal)
             coupon_code = coupon.code
             coupon.times_used += 1
 
@@ -230,40 +236,41 @@ async def checkout(
     )
     full_order = result.scalar_one()
 
-    # Send order confirmation notifications (non-blocking)
-    order_url = f"{__import__('app.config', fromlist=['settings']).settings.frontend_url}/order-confirmation/{full_order.order_number}"
+    from app.config import settings as _settings
     total_str = format_ksh(full_order.total)
-    email_to = current_user.email if current_user else data.guest_email
-    first_name = current_user.first_name if current_user else data.shipping_full_name.split()[0]
-    if email_to:
-        asyncio.create_task(
-            send_order_confirmation(
-                email_to,
-                first_name,
-                full_order.order_number,
-                total_str,
-                order_url,
-            )
-        )
-    if current_user and current_user.phone:
-        asyncio.create_task(
-            send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
-        )
-
-    # Notify admin of new order (email + in-platform)
-    admin_order_url = f"{__import__('app.config', fromlist=['settings']).settings.frontend_url}/admin/orders/{full_order.id}"
     customer_name = current_user.first_name + " " + current_user.last_name if current_user else data.shipping_full_name
     customer_email_for_admin = current_user.email if current_user else (data.guest_email or "")
-    asyncio.create_task(
-        send_admin_new_order(
-            order_number=full_order.order_number,
-            customer_name=customer_name,
-            customer_email=customer_email_for_admin,
-            order_total=total_str,
-            item_count=len(full_order.items),
-            order_admin_url=admin_order_url,
-        )
-    )
+
+    if data.payment_method == "cod":
+        # COD is confirmed immediately — send confirmation now
+        track_url = f"{_settings.frontend_url}/track-order?order_number={full_order.order_number}"
+        email_to = current_user.email if current_user else data.guest_email
+        first_name = current_user.first_name if current_user else data.shipping_full_name.split()[0]
+        if email_to:
+            asyncio.create_task(
+                send_order_confirmation(email_to, first_name, full_order.order_number, total_str, track_url)
+            )
+        if current_user and current_user.phone:
+            asyncio.create_task(
+                send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
+            )
+        # Notify all admins
+        admin_order_url = f"{_settings.frontend_url}/admin/orders/{full_order.id}"
+        admin_result = await db.execute(select(User).where(User.role.in_(["admin", "super_admin"]), User.is_active == True))
+        admin_users = admin_result.scalars().all()
+        for admin_user in admin_users:
+            asyncio.create_task(
+                send_admin_new_order(
+                    order_number=full_order.order_number,
+                    customer_name=customer_name,
+                    customer_email=customer_email_for_admin,
+                    order_total=total_str,
+                    item_count=len(full_order.items),
+                    order_admin_url=admin_order_url,
+                    to_email=admin_user.email,
+                )
+            )
+    # For Paystack/online payments, confirmation emails are sent by payments.py after payment is verified
 
     # Create in-platform notifications
     await create_admin_notification(

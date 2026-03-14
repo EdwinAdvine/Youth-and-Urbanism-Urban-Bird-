@@ -19,6 +19,10 @@ from app.models.user import User
 from app.api.deps import get_current_active_user, get_optional_user
 from app.utils.payments.mpesa_stk import mpesa_client
 from app.utils.payments.paystack import paystack_client
+from app.services.email_service import send_order_confirmation, send_admin_new_order
+from app.services.sms_service import send_order_confirmation_sms
+from app.utils.formatters import format_ksh
+import asyncio
 
 router = APIRouter()
 stripe.api_key = settings.stripe_secret_key
@@ -216,6 +220,59 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
 class PaystackInitRequest(BaseModel):
     order_id: uuid.UUID
+
+
+async def _send_payment_confirmed_emails(order: Order, db: AsyncSession) -> None:
+    """Send order confirmation to customer and new-order notice to all admins after payment."""
+    total_str = format_ksh(order.total)
+    track_url = f"{settings.frontend_url}/track-order?order_number={order.order_number}"
+    admin_order_url = f"{settings.frontend_url}/admin/orders/{order.id}"
+
+    # Resolve customer email / name
+    email_to = None
+    first_name = order.shipping_full_name.split()[0] if order.shipping_full_name else "Customer"
+    phone = None
+    if order.user_id:
+        user_result = await db.execute(select(User).where(User.id == order.user_id))
+        user = user_result.scalar_one_or_none()
+        if user:
+            email_to = user.email
+            first_name = user.first_name or first_name
+            phone = user.phone
+    if not email_to and order.guest_email:
+        email_to = order.guest_email
+
+    customer_email_for_admin = email_to or ""
+    customer_name = order.shipping_full_name or first_name
+
+    if email_to:
+        asyncio.create_task(
+            send_order_confirmation(email_to, first_name, order.order_number, total_str, track_url)
+        )
+    if phone:
+        asyncio.create_task(
+            send_order_confirmation_sms(phone, order.order_number, total_str)
+        )
+
+    # Notify all admins
+    admin_result = await db.execute(
+        select(User).where(User.role.in_(["admin", "super_admin"]), User.is_active == True)
+    )
+    admin_users = admin_result.scalars().all()
+    items_result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
+    item_count = len(items_result.scalars().all())
+    for admin_user in admin_users:
+        asyncio.create_task(
+            send_admin_new_order(
+                order_number=order.order_number,
+                customer_name=customer_name,
+                customer_email=customer_email_for_admin,
+                order_total=total_str,
+                item_count=item_count,
+                order_admin_url=admin_order_url,
+                to_email=admin_user.email,
+            )
+        )
 
 
 async def _get_order_items(order: Order, db: AsyncSession):
@@ -433,6 +490,9 @@ async def verify_paystack(
         # Convert stock reservations to actual sales
         await _finalize_order_stock(order, db)
 
+        # Send confirmation emails (non-blocking)
+        await _send_payment_confirmed_emails(order, db)
+
         return {"status": "success", "message": "Payment confirmed"}
 
     else:
@@ -498,6 +558,9 @@ async def paystack_webhook(request: Request, db: AsyncSession = Depends(get_db))
                     payment.gateway_response = data
                 # Convert reservations to actual sales
                 await _finalize_order_stock(order, db)
+
+                # Send confirmation emails (non-blocking)
+                await _send_payment_confirmed_emails(order, db)
 
     elif event == "charge.failed":
         reference = data.get("reference", "")

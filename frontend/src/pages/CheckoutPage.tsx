@@ -81,7 +81,6 @@ export default function CheckoutPage() {
         shipping_full_name: `${shippingData.first_name} ${shippingData.last_name}`.trim(),
         shipping_phone: shippingData.phone,
         shipping_address_line_1: shippingData.address_line_1,
-        shipping_address_line_2: shippingData.address_line_2 || undefined,
         shipping_city: shippingData.city,
         shipping_county: shippingData.county,
         shipping_rate_id: selectedRate?.id,
@@ -301,7 +300,6 @@ export default function CheckoutPage() {
                   <p className="font-semibold text-gray-900 mb-1">Shipping to:</p>
                   <p>{shippingData.first_name} {shippingData.last_name} · {shippingData.phone}</p>
                   <p>{shippingData.address_line_1}</p>
-                  {shippingData.address_line_2 && <p>{shippingData.address_line_2}</p>}
                   <p>{shippingData.city}, {shippingData.county}</p>
                 </div>
               )}

@@ -132,6 +132,7 @@ async def send_admin_new_order(
     order_total: str,
     item_count: int,
     order_admin_url: str,
+    to_email: Optional[str] = None,
 ) -> bool:
     html = _render(
         "admin_new_order.html",
@@ -143,8 +144,11 @@ async def send_admin_new_order(
         item_count=item_count,
         order_admin_url=order_admin_url,
     )
+    recipient = to_email or settings.admin_email
+    if not recipient:
+        return False
     return await _send_email(
-        settings.admin_email,
+        recipient,
         f"New Order Received — {order_number}",
         html,
     )

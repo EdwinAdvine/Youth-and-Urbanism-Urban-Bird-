@@ -9,7 +9,6 @@ interface ShippingData {
   last_name: string;
   phone: string;
   address_line_1: string;
-  address_line_2?: string;
   city: string;
   county: string;
   save_address?: boolean;
@@ -88,7 +87,6 @@ export const useCheckoutStore = create<CheckoutState>()((set) => ({
         last_name: address.full_name?.split(" ").slice(1).join(" ") ?? "",
         phone: address.phone,
         address_line_1: address.address_line_1,
-        address_line_2: address.address_line_2,
         city: address.city,
         county: address.county,
       },
