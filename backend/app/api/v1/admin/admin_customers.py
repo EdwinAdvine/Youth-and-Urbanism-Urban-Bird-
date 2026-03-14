@@ -18,7 +18,7 @@ async def list_customers(
     admin: User = Depends(get_admin_user),
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=1000),
 ):
     query = select(User).where(User.role == "customer", User.is_deleted == False).order_by(User.created_at.desc())
     if search:

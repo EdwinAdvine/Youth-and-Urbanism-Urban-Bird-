@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Thank you for your order!{% endblock %}
+{% block content %}
+<h2>Thank you, {{ first_name }}! ❤️</h2>
+<p>We hope you're loving your Urban Bird order <strong>{{ order_number }}</strong>. It means the world to us that you chose to shop with us.</p>
+
+<p>We'd love to hear what you think — your feedback helps us grow and serve you better.</p>
+
+<center>
+  <a href="{{ order_url }}" class="cta">Leave a Review</a>
+</center>
+
+<div style="margin-top:28px;padding:20px;background:#fef2f2;border-radius:8px;text-align:center;">
+  <p style="margin:0 0 8px;font-weight:600;color:#111827;font-size:15px;">Ready to shop again?</p>
+  <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">New arrivals drop every week. Don't miss out.</p>
+  <a href="{{ shop_url }}/shop" style="display:inline-block;background:#782121;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Explore New Arrivals</a>
+</div>
+
+<p style="color:#6b7280;font-size:13px;margin-top:24px;">
+  If anything wasn't right with your order, please reach us at hello@urbanbird.co.ke and we'll make it right.
+</p>
+{% endblock %}

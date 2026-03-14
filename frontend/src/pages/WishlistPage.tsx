@@ -9,8 +9,10 @@ import { formatKSh } from "../utils/formatPrice";
 import Button from "../components/ui/Button";
 import { ProductCardSkeleton } from "../components/ui/Skeleton";
 import toast from "react-hot-toast";
+import { useSEO } from "../hooks/useSEO";
 
 export default function WishlistPage() {
+  useSEO({ title: "Your Wishlist", noindex: true });
   const { productIds, removeItem } = useWishlistStore();
   const { addItem } = useCartStore();
   const [products, setProducts] = useState<Product[]>([]);

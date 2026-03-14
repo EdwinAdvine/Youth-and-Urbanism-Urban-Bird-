@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Return Request Received — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>We've received your return request</h2>
+<p>Hi {{ first_name }},</p>
+<p>Thank you for reaching out. We've received your return request for order <strong>{{ order_number }}</strong> and our team will review it within <strong>1–2 business days</strong>.</p>
+
+<div class="order-box">
+  <div class="order-row"><span>Order</span><span>{{ order_number }}</span></div>
+  <div class="order-row"><span>Reason</span><span>{{ reason_label }}</span></div>
+  <div class="order-row"><span>Status</span><span style="color:#d97706;font-weight:600;">Requested — Under Review</span></div>
+</div>
+
+<p>We'll send you an email as soon as we've made a decision. You can also track your return status any time from your account.</p>
+
+<center>
+  <a href="{{ order_url }}" class="cta">Track Return Status</a>
+</center>
+
+<p style="color:#6b7280;font-size:13px;margin-top:24px;">
+  If you have questions about your return, reply to this email or contact us at
+  <a href="mailto:hello@urbanbird.co.ke" style="color:#782121;">hello@urbanbird.co.ke</a>.
+</p>
+{% endblock %}

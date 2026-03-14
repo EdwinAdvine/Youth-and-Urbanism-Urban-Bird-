@@ -32,6 +32,7 @@ const OrderHistoryPage = lazy(() => import("../pages/account/OrderHistoryPage"))
 const OrderDetailPage = lazy(() => import("../pages/account/OrderDetailPage"));
 const AddressesPage = lazy(() => import("../pages/account/AddressesPage"));
 const AccountSettingsPage = lazy(() => import("../pages/account/AccountSettingsPage"));
+const NotificationsPage = lazy(() => import("../pages/account/NotificationsPage"));
 
 // Admin pages
 const AdminDashboardPage = lazy(() => import("../pages/admin/AdminDashboardPage"));
@@ -50,6 +51,7 @@ const AdminStaffPage = lazy(() => import("../pages/admin/AdminStaffPage"));
 const AdminSettingsPage = lazy(() => import("../pages/admin/AdminSettingsPage"));
 const AdminBannersPage = lazy(() => import("../pages/admin/AdminBannersPage"));
 const AdminNewsletterPage = lazy(() => import("../pages/admin/AdminNewsletterPage"));
+const AdminNotificationsPage = lazy(() => import("../pages/admin/AdminNotificationsPage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -102,6 +104,7 @@ export default function AppRoutes() {
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="addresses" element={<AddressesPage />} />
           <Route path="settings" element={<AccountSettingsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
         </Route>
 
         {/* Admin */}
@@ -130,6 +133,7 @@ export default function AppRoutes() {
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="banners" element={<AdminBannersPage />} />
           <Route path="newsletter" element={<AdminNewsletterPage />} />
+          <Route path="notifications" element={<AdminNotificationsPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

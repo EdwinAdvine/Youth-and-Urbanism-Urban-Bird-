@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone, timedelta
@@ -8,6 +8,7 @@ import uuid
 from app.database import get_db
 from app.redis import get_redis
 from app.config import settings
+from app.limiter import limiter
 from app.models.user import User
 from app.schemas.auth import (
     RegisterRequest, LoginRequest, TokenResponse, RefreshRequest,
@@ -19,6 +20,7 @@ from app.utils.security import (
 )
 from app.api.deps import get_current_active_user
 from app.services.email_service import send_welcome_email, send_password_reset
+from app.services.notification_service import create_notification
 from jose import JWTError
 import asyncio
 
@@ -45,6 +47,7 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
         first_name=data.first_name,
         last_name=data.last_name,
         role="customer",
+        gender=data.gender,
     )
     db.add(user)
     await db.flush()
@@ -66,17 +69,60 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
         value=refresh_token,
         httponly=True,
         secure=settings.environment == "production",
-        samesite="lax",
+        samesite="strict",
         max_age=settings.refresh_token_expire_days * 86400,
         path="/api/v1/auth",
     )
 
+    # Create welcome in-platform notification (before commit so it's part of the transaction)
+    await create_notification(
+        db,
+        user.id,
+        "welcome",
+        "Welcome to Urban Bird! 🎉",
+        f"Hi {user.first_name}, thanks for joining! Use code WELCOME10 for free shipping on your first order.",
+        {},
+    )
+
     await db.commit()
 
-    # Fire welcome email in background (non-blocking)
-    asyncio.create_task(
-        send_welcome_email(user.email, user.first_name)
-    )
+    # Fetch top 3 featured products for welcome email (fire-and-forget)
+    async def _send_welcome_with_products():
+        from sqlalchemy import select as _select
+        from sqlalchemy.orm import selectinload as _selectinload
+        from app.models.product import Product as _Product
+        from app.database import AsyncSessionLocal
+        from app.utils.formatters import format_ksh as _fmt
+        try:
+            async with AsyncSessionLocal() as _db:
+                res = await _db.execute(
+                    _select(_Product)
+                    .options(_selectinload(_Product.images))
+                    .where(_Product.is_featured == True, _Product.is_active == True)
+                    .order_by(_Product.purchase_count.desc())
+                    .limit(3)
+                )
+                products = res.scalars().all()
+                suggestions = []
+                for p in products:
+                    image = None
+                    for img in p.images:
+                        if img.is_primary:
+                            image = img.url
+                            break
+                    if not image and p.images:
+                        image = p.images[0].url
+                    suggestions.append({
+                        "name": p.name,
+                        "slug": p.slug,
+                        "price": _fmt(p.price),
+                        "image": image,
+                    })
+        except Exception:
+            suggestions = []
+        await send_welcome_email(user.email, user.first_name, suggestions)
+
+    asyncio.create_task(_send_welcome_with_products())
 
     return TokenResponse(
         access_token=access_token,
@@ -85,7 +131,8 @@ async def register(data: RegisterRequest, response: Response, db: AsyncSession =
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == data.email, User.is_deleted == False))
     user = result.scalar_one_or_none()
 
@@ -108,7 +155,7 @@ async def login(data: LoginRequest, response: Response, db: AsyncSession = Depen
         value=refresh_token,
         httponly=True,
         secure=settings.environment == "production",
-        samesite="lax",
+        samesite="strict",
         max_age=settings.refresh_token_expire_days * 86400,
         path="/api/v1/auth",
     )
@@ -169,7 +216,8 @@ async def refresh_token(
 
 
 @router.post("/forgot-password")
-async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == data.email, User.is_deleted == False))
     user = result.scalar_one_or_none()
 

@@ -7,9 +7,14 @@ import { useCartStore } from "./store/cartStore";
 import { useWishlistStore } from "./store/wishlistStore";
 
 export default function App() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, initialize } = useAuthStore();
   const fetchCart = useCartStore((s) => s.fetchCart);
   const fetchWishlist = useWishlistStore((s) => s.fetchWishlist);
+
+  // Silently refresh access token on every page load using the httpOnly refresh cookie
+  useEffect(() => {
+    initialize();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchCart();

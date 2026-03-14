@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSEO } from "../../hooks/useSEO";
 
 interface Subcategory {
-  id: number;
+  id: string;
   name: string;
   slug: string;
-  category_id: number;
+  category_id: string;
 }
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   image_url: string;
@@ -19,12 +20,13 @@ interface Category {
 }
 
 const emptyCategory = { name: '', slug: '', image_url: '', display_order: 0 };
-const emptySubcategory = { name: '', slug: '', category_id: 0 };
+const emptySubcategory = { name: '', slug: '', category_id: '' };
 
 export default function AdminCategoriesPage() {
+  useSEO({ title: "Categories", noindex: true });
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Category modal state
   const [catModal, setCatModal] = useState(false);
@@ -41,7 +43,7 @@ export default function AdminCategoriesPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/v1/categories');
+      const res = await api.get('/api/v1/admin/categories');
       setCategories(res.data?.data ?? res.data ?? []);
     } catch {
       toast.error('Failed to load categories');
@@ -85,7 +87,7 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const deleteCat = async (id: number) => {
+  const deleteCat = async (id: string) => {
     if (!window.confirm('Delete this category? This may affect products.')) return;
     try {
       await api.delete(`/api/v1/admin/categories/${id}`);
@@ -97,7 +99,7 @@ export default function AdminCategoriesPage() {
   };
 
   // ── Subcategory helpers ─────────────────────────────────────────────────────
-  const openAddSub = (categoryId: number) => {
+  const openAddSub = (categoryId: string) => {
     setEditSub(null);
     setSubForm({ name: '', slug: '', category_id: categoryId });
     setSubModal(true);
@@ -114,10 +116,10 @@ export default function AdminCategoriesPage() {
     try {
       setSubSaving(true);
       if (editSub) {
-        await api.patch(`/api/v1/admin/categories/subcategories/${editSub.id}`, subForm);
+        await api.patch(`/api/v1/admin/categories/subcategories/${editSub.id}`, { name: subForm.name, slug: subForm.slug });
         toast.success('Subcategory updated');
       } else {
-        await api.post('/api/v1/admin/categories/subcategories', subForm);
+        await api.post(`/api/v1/admin/categories/${subForm.category_id}/subcategories`, { name: subForm.name, slug: subForm.slug });
         toast.success('Subcategory created');
       }
       setSubModal(false);
@@ -129,7 +131,7 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const deleteSub = async (id: number) => {
+  const deleteSub = async (id: string) => {
     if (!window.confirm('Delete this subcategory?')) return;
     try {
       await api.delete(`/api/v1/admin/categories/subcategories/${id}`);
@@ -338,7 +340,7 @@ export default function AdminCategoriesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
                 <select
                   value={subForm.category_id}
-                  onChange={(e) => setSubForm((f) => ({ ...f, category_id: Number(e.target.value) }))}
+                  onChange={(e) => setSubForm((f) => ({ ...f, category_id: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
                 >
                   {(Array.isArray(categories) ? categories : []).map((c) => (

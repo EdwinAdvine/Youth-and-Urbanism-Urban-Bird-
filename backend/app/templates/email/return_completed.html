@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Your Return Has Been Completed — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>Your return is complete! 🎉</h2>
+<p>Hi {{ first_name }},</p>
+<p>We've successfully processed your return for order <strong>{{ order_number }}</strong>. Here's a summary of what was done:</p>
+
+<div class="order-box">
+  <div class="order-row"><span>Order</span><span>{{ order_number }}</span></div>
+  <div class="order-row"><span>Resolution</span><span style="text-transform:capitalize;">{{ resolution_label }}</span></div>
+  {% if refund_amount %}
+  <div class="order-row"><span>Amount</span><span style="font-weight:700;color:#15803d;">{{ refund_amount }}</span></div>
+  {% endif %}
+  <div class="order-row"><span>Status</span><span style="color:#15803d;font-weight:600;">Completed</span></div>
+</div>
+
+{% if resolution_type == "refund" %}
+<p>Your refund of <strong>{{ refund_amount }}</strong> has been initiated and should appear in your original payment method within <strong>3–7 business days</strong>, depending on your bank.</p>
+{% elif resolution_type == "exchange" %}
+<p>Your exchange order is being prepared and you'll receive a separate shipping notification shortly.</p>
+{% elif resolution_type == "store_credit" %}
+<p>Store credit of <strong>{{ refund_amount }}</strong> has been added to your Urban Bird account and is available for use on your next purchase.</p>
+{% endif %}
+
+<center>
+  <a href="{{ shop_url }}/shop" class="cta">Continue Shopping</a>
+</center>
+
+<p style="color:#6b7280;font-size:13px;margin-top:24px;">
+  Thank you for your patience throughout this process. If you have any further questions, reach us at
+  <a href="mailto:hello@urbanbird.co.ke" style="color:#782121;">hello@urbanbird.co.ke</a>.
+</p>
+{% endblock %}

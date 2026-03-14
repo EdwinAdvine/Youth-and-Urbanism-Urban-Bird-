@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSEO } from "../../hooks/useSEO";
 
 interface Variant {
-  id: number;
-  product_id: number;
+  id: string;
   product_name: string;
   sku: string;
   size: string;
-  color: string;
+  color_name: string;
   stock_quantity: number;
 }
 
 interface RestockForm {
-  variant_id: number;
+  variant_id: string;
   quantity: number;
   note: string;
 }
@@ -32,14 +32,15 @@ const stockBadge = (qty: number) => {
 };
 
 export default function AdminInventoryPage() {
+  useSEO({ title: "Inventory", noindex: true });
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'medium'>('all');
 
   // Restock state
-  const [restockId, setRestockId] = useState<number | null>(null);
-  const [restockForm, setRestockForm] = useState<RestockForm>({ variant_id: 0, quantity: 1, note: '' });
+  const [restockId, setRestockId] = useState<string | null>(null);
+  const [restockForm, setRestockForm] = useState<RestockForm>({ variant_id: '', quantity: 1, note: '' });
   const [restocking, setRestocking] = useState(false);
 
   const fetchInventory = async () => {
@@ -65,7 +66,7 @@ export default function AdminInventoryPage() {
     e.preventDefault();
     try {
       setRestocking(true);
-      await api.post('/api/v1/admin/inventory/restock', restockForm);
+      await api.post('/api/v1/admin/inventory/restock', [restockForm]);
       toast.success('Stock updated successfully');
       setRestockId(null);
       fetchInventory();
@@ -159,7 +160,7 @@ export default function AdminInventoryPage() {
                     <td className="px-4 py-3 font-medium text-gray-900">{v.product_name}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{v.sku}</td>
                     <td className="px-4 py-3 text-gray-600">{v.size || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{v.color || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{v.color_name || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${stockBadge(v.stock_quantity)}`}>
                         {v.stock_quantity}

@@ -7,21 +7,55 @@
 
     <!-- Default SEO — overridden per-page via useSEO hook -->
     <title>Urban Bird — Premium Urban Streetwear Kenya</title>
-    <meta name="description" content="Kenya's premier urban streetwear brand. Quality hoodies, sweatpants, jackets and accessories. Free delivery on orders above KSh 5,000." />
+    <meta name="description" content="Kenya's premier urban streetwear brand. Hoodies, sweatpants, jackets & accessories. Free delivery on orders above KSh 5,000." />
     <meta name="keywords" content="urban streetwear Kenya, hoodies Kenya, sweatpants Nairobi, jackets Kenya, Urban Bird" />
+    <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://urbanbird.co.ke/" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph (default — per-page values set dynamically via useSEO) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Urban Bird" />
     <meta property="og:title" content="Urban Bird — Premium Urban Streetwear Kenya" />
-    <meta property="og:description" content="Kenya's premier urban streetwear brand. Free delivery on orders above KSh 5,000." />
-    <meta property="og:image" content="https://urbanbird.co.ke/wp-content/uploads/2026/01/Hero-slide-1.webp" />
+    <meta property="og:description" content="Kenya's premier urban streetwear brand. Hoodies, sweatpants, jackets & accessories. Free delivery on orders above KSh 5,000." />
+    <meta property="og:image" content="https://urbanbird.co.ke/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Urban Bird — Premium Urban Streetwear Kenya" />
     <meta property="og:url" content="https://urbanbird.co.ke/" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@urbanbird_ke" />
+    <meta name="twitter:title" content="Urban Bird — Premium Urban Streetwear Kenya" />
+    <meta name="twitter:description" content="Kenya's premier urban streetwear brand. Hoodies, sweatpants, jackets & accessories. Free delivery on orders above KSh 5,000." />
+    <meta name="twitter:image" content="https://urbanbird.co.ke/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Urban Bird — Premium Urban Streetwear Kenya" />
+
+    <!-- Organization structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ClothingStore",
+      "name": "Urban Bird",
+      "url": "https://urbanbird.co.ke",
+      "logo": "https://urbanbird.co.ke/logo.png",
+      "image": "https://urbanbird.co.ke/og-image.jpg",
+      "description": "Kenya's premier urban streetwear brand. Hoodies, sweatpants, jackets & accessories.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Nairobi",
+        "addressCountry": "KE"
+      },
+      "sameAs": [
+        "https://www.instagram.com/urbanbird_ke",
+        "https://www.facebook.com/urbanbird.ke"
+      ],
+      "priceRange": "KSh 1,000 – KSh 10,000",
+      "currenciesAccepted": "KES",
+      "paymentAccepted": "Cash, M-Pesa, Card",
+      "openingHours": "Mo-Su 08:00-22:00"
+    }
+    </script>
 
     <!-- Google Analytics (GA4) — replace G-XXXXXXXXXX with your Measurement ID -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>

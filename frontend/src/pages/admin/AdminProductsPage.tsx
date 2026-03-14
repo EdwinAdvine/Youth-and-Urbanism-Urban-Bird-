@@ -6,24 +6,45 @@ import { formatKSh } from "../../utils/formatPrice";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import toast from "react-hot-toast";
+import { NAV_CATEGORIES } from "../../data/navData";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminProductsPage() {
+  useSEO({ title: "Products", noindex: true });
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page] = useState(1);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+
+  const subcategoryItems = activeCategory
+    ? (NAV_CATEGORIES.find((c) => c.slug === activeCategory)?.groups.flatMap((g) =>
+        g.items.map((item) => ({
+          label: item.label,
+          slug: item.href.split("sub=")[1] ?? item.label.toLowerCase(),
+        }))
+      ) ?? [])
+    : [];
+
+  const handleCategoryClick = (slug: string) => {
+    setActiveCategory(slug === activeCategory ? null : slug);
+    setActiveSubcategory(null);
+  };
 
   const load = () => {
     setIsLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (search) params.set("q", search);
+    if (activeCategory) params.set("category", activeCategory);
+    if (activeSubcategory) params.set("subcategory", activeSubcategory);
     api.get(`/api/v1/admin/products?${params}`)
       .then((r) => { setProducts(r.data.items); })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   };
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [page, activeCategory, activeSubcategory]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product? This cannot be undone.")) return;
@@ -46,6 +67,62 @@ export default function AdminProductsPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Category filter — Row 1 */}
+      <div className="flex gap-2 mb-2 flex-wrap">
+        <button
+          onClick={() => { setActiveCategory(null); setActiveSubcategory(null); }}
+          className={`px-4 py-1.5 rounded-full text-xs font-manrope font-medium border transition-colors ${
+            !activeCategory
+              ? "bg-maroon-700 text-white border-maroon-700"
+              : "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700"
+          }`}
+        >
+          All
+        </button>
+        {NAV_CATEGORIES.map((cat) => (
+          <button
+            key={cat.slug}
+            onClick={() => handleCategoryClick(cat.slug)}
+            className={`px-4 py-1.5 rounded-full text-xs font-manrope font-medium border transition-colors ${
+              activeCategory === cat.slug
+                ? "bg-maroon-700 text-white border-maroon-700"
+                : "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700"
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Subcategory filter — Row 2 */}
+      {activeCategory && (
+        <div className="flex gap-2 mb-4 flex-wrap pl-2 border-l-2 border-maroon-200">
+          <button
+            onClick={() => setActiveSubcategory(null)}
+            className={`px-3 py-1 rounded-full text-xs font-manrope font-medium border transition-colors ${
+              !activeSubcategory
+                ? "bg-maroon-100 text-maroon-800 border-maroon-300"
+                : "bg-white text-gray-500 border-gray-200 hover:border-maroon-300 hover:text-maroon-700"
+            }`}
+          >
+            All {NAV_CATEGORIES.find((c) => c.slug === activeCategory)?.label}
+          </button>
+          {subcategoryItems.map((sub) => (
+            <button
+              key={sub.slug}
+              onClick={() => setActiveSubcategory(sub.slug === activeSubcategory ? null : sub.slug)}
+              className={`px-3 py-1 rounded-full text-xs font-manrope font-medium border transition-colors ${
+                activeSubcategory === sub.slug
+                  ? "bg-maroon-100 text-maroon-800 border-maroon-300"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-maroon-300 hover:text-maroon-700"
+              }`}
+            >
+              {sub.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex gap-3">
         <div className="relative flex-1">

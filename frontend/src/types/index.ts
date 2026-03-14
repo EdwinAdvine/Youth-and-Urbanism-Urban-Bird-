@@ -5,8 +5,19 @@ export interface User {
   first_name: string;
   last_name: string;
   role: "customer" | "admin" | "super_admin";
+  gender?: string;
   avatar_url?: string;
   is_verified: boolean;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  data: Record<string, string>;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -164,6 +175,7 @@ export interface Address {
 
 export interface OrderItem {
   id: string;
+  variant_id?: string;
   product_name: string;
   sku: string;
   variant_sku?: string;
@@ -201,6 +213,8 @@ export interface Order {
   items?: OrderItem[];
   customer_notes?: string;
   created_at: string;
+  guest_token?: string;    // returned on checkout for guest orders
+  user_id?: string | null; // null for guest orders
   // Optional nested
   status_history?: { id: string; new_status: string; old_status?: string; note?: string; created_at: string }[];
   payment?: { status: string; gateway: string };
@@ -245,4 +259,5 @@ export interface RegisterRequest {
   first_name: string;
   last_name: string;
   phone?: string;
+  gender?: string;
 }

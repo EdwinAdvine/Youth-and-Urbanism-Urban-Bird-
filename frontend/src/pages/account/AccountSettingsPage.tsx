@@ -5,8 +5,10 @@ import api from "../../services/api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AccountSettingsPage() {
+  useSEO({ title: "Account Settings", noindex: true });
   const { user, setUser } = useAuthStore();
   const [profile, setProfile] = useState({
     first_name: user?.first_name || "",

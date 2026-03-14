@@ -5,6 +5,7 @@ import { useProductStore } from "../store/productStore";
 import ProductGrid from "../components/product/ProductGrid";
 import Button from "../components/ui/Button";
 import ShopSidebar from "../components/product/ShopSidebar";
+import { useSEO } from "../hooks/useSEO";
 
 const SORT_OPTIONS = [
   { value: "latest", label: "Latest" },
@@ -21,6 +22,15 @@ export default function ShopPage() {
 
   const currentSort = searchParams.get("sort") || "latest";
   const currentPage = parseInt(searchParams.get("page") || "1");
+  const isOnSale = searchParams.get("on_sale") === "true";
+
+  useSEO({
+    title: isOnSale ? "Sale — Up to 70% Off Streetwear" : "Shop Urban Streetwear",
+    description: isOnSale
+      ? "Massive discounts on Urban Bird streetwear. Hoodies, sweatpants, jackets — while stocks last."
+      : "Browse all Urban Bird products. Hoodies, sweatpants, jackets & accessories for men, women and kids in Kenya.",
+    url: "https://urbanbird.co.ke/shop",
+  });
 
   useEffect(() => {
     const params: Record<string, any> = { sort: currentSort };

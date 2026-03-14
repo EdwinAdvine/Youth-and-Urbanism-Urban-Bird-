@@ -5,8 +5,10 @@ import { formatKSh } from "../utils/formatPrice";
 import Button from "../components/ui/Button";
 import { useCartStore } from "../store/cartStore";
 import toast from "react-hot-toast";
+import { useSEO } from "../hooks/useSEO";
 
 export default function ComparePage() {
+  useSEO({ title: "Compare Products", noindex: true });
   const { products, removeProduct, clearCompare } = useCompareStore();
   const { addItem } = useCartStore();
 

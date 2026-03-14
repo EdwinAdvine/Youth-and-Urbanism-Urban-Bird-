@@ -58,6 +58,15 @@ class ProductVariantOut(BaseModel):
         from_attributes = True
 
 
+class SubcategoryBrief(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+
+    class Config:
+        from_attributes = True
+
+
 class ProductListItem(BaseModel):
     id: uuid.UUID
     name: str
@@ -71,16 +80,34 @@ class ProductListItem(BaseModel):
     review_count: int
     total_stock: int
     primary_image: ProductImageOut | None = None
+    images: list[ProductImageOut] = []
+    variants: list[ProductVariantOut] = []
     category_slug: str | None = None
     subcategory_slug: str | None = None
+    subcategory: SubcategoryBrief | None = None
 
     class Config:
         from_attributes = True
 
 
-class ProductDetail(ProductListItem):
+class ProductDetail(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
     description: str
     short_description: str | None = None
+    price: Decimal
+    compare_at_price: Decimal | None = None
+    sale_percentage: int | None = None
+    is_on_sale: bool
+    is_new_arrival: bool
+    is_featured: bool
+    status: str
+    average_rating: Decimal
+    review_count: int
+    total_stock: int
+    category_id: uuid.UUID | None = None
+    subcategory_id: uuid.UUID | None = None
     brand: str | None = None
     material: str | None = None
     care_instructions: str | None = None
@@ -137,17 +164,26 @@ class ProductSearchResult(BaseModel):
 
 
 # Admin schemas
+class VariantInline(BaseModel):
+    sku: str
+    size: str
+    color_name: str
+    color_hex: str = "#000000"
+    price_adjustment: Decimal = Decimal("0.00")
+    stock_quantity: int = 0
+
+
 class ProductCreate(BaseModel):
     name: str
     slug: str | None = None
     description: str = ""
     short_description: str | None = None
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
     subcategory_id: uuid.UUID | None = None
     price: Decimal
     compare_at_price: Decimal | None = None
     cost_price: Decimal | None = None
-    status: str = "draft"
+    status: str = "active"
     is_featured: bool = False
     is_new_arrival: bool = False
     is_on_sale: bool = False
@@ -159,12 +195,32 @@ class ProductCreate(BaseModel):
     tags: list = []
     seo_title: str | None = None
     seo_description: str | None = None
+    variants: list[VariantInline] = []
 
 
-class ProductUpdate(ProductCreate):
+class ProductUpdate(BaseModel):
     name: str | None = None
+    slug: str | None = None
+    description: str | None = None
+    short_description: str | None = None
     category_id: uuid.UUID | None = None
+    subcategory_id: uuid.UUID | None = None
     price: Decimal | None = None
+    compare_at_price: Decimal | None = None
+    cost_price: Decimal | None = None
+    status: str | None = None
+    is_featured: bool | None = None
+    is_new_arrival: bool | None = None
+    is_on_sale: bool | None = None
+    sale_percentage: int | None = None
+    low_stock_threshold: int | None = None
+    brand: str | None = None
+    material: str | None = None
+    care_instructions: str | None = None
+    tags: list | None = None
+    seo_title: str | None = None
+    seo_description: str | None = None
+    variants: list[VariantInline] | None = None
 
 
 class VariantCreate(BaseModel):

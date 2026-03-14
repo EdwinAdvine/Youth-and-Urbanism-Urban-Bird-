@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Shield } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminLoginPage() {
+  useSEO({ title: "Admin Login", noindex: true });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

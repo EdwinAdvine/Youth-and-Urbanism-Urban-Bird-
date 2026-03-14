@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Cookie
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Optional
 import uuid
 
+from app.limiter import limiter
+
 from app.database import get_db
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.cart import Cart, CartItem
@@ -14,10 +16,15 @@ from app.models.user import User
 from app.models.coupon import Coupon, CouponUsage
 from app.models.product import Product, ProductVariant
 from app.models.payment import Payment
+from app.models.shipping import ShippingRate
 from app.schemas.order import CheckoutRequest, OrderOut, OrderListItem
 from app.api.deps import get_current_active_user, get_optional_user
-from app.services.email_service import send_order_confirmation
+from app.services.email_service import (
+    send_order_confirmation, send_admin_new_order,
+    send_return_submitted, send_admin_new_return,
+)
 from app.services.sms_service import send_order_confirmation_sms
+from app.services.notification_service import create_notification, create_admin_notification
 from app.utils.formatters import format_ksh
 from app.models.return_request import ReturnRequest
 from pydantic import BaseModel as _BaseModel
@@ -72,8 +79,25 @@ async def checkout(
 
     # Calculate subtotal
     subtotal = sum(item.unit_price * item.quantity for item in cart.items)
-    # Determine shipping cost (flat rate; can be extended with zone-based rates)
+    # Determine shipping cost — use selected rate from DB, fall back to flat KES 300
     shipping_cost = Decimal("300.00")
+    if data.shipping_rate_id:
+        try:
+            rate_result = await db.execute(
+                select(ShippingRate).where(
+                    ShippingRate.id == data.shipping_rate_id,
+                    ShippingRate.is_active == True,
+                )
+            )
+            rate = rate_result.scalar_one_or_none()
+            if rate:
+                # Apply free-shipping threshold if configured
+                if rate.free_above and subtotal >= rate.free_above:
+                    shipping_cost = Decimal("0.00")
+                else:
+                    shipping_cost = rate.price
+        except Exception:
+            pass  # Fall back to flat rate if rate lookup fails
     discount_amount = Decimal("0.00")
     coupon_code = None
 
@@ -99,10 +123,14 @@ async def checkout(
 
     total = subtotal + shipping_cost - discount_amount
 
+    # Generate guest token for guest orders (used to securely retrieve order later)
+    guest_token = str(uuid.uuid4()) if not current_user else None
+
     # Create order
     order = Order(
         user_id=current_user.id if current_user else None,
         guest_email=None if current_user else data.guest_email,
+        guest_token=guest_token,
         order_number=_generate_order_number(),
         status="pending_payment",
         subtotal=subtotal,
@@ -154,19 +182,28 @@ async def checkout(
         )
         db.add(order_item)
 
-        # Decrement stock
+        # Reserve or decrement stock depending on payment method
         if variant:
-            variant.stock_quantity = max(0, variant.stock_quantity - item.quantity)
-            if product:
-                product.total_stock = max(0, product.total_stock - item.quantity)
-                product.purchase_count += item.quantity
+            if data.payment_method == "cod":
+                # COD is confirmed immediately — deduct stock now
+                variant.stock_quantity = max(0, variant.stock_quantity - item.quantity)
+                if product:
+                    product.total_stock = max(0, product.total_stock - item.quantity)
+                    product.purchase_count += item.quantity
+            else:
+                # Online payment — reserve stock; deduct only after payment is confirmed
+                variant.reserved_quantity += item.quantity
+
+    # COD orders are confirmed immediately — payment happens on delivery
+    if data.payment_method == "cod":
+        order.status = "confirmed"
 
     # Add status history
     db.add(OrderStatusHistory(
         order_id=order.id,
         old_status=None,
-        new_status="pending_payment",
-        note="Order created",
+        new_status=order.status,
+        note="Order created" if data.payment_method != "cod" else "Order created (Cash on Delivery)",
     ))
 
     # Create payment record
@@ -175,7 +212,7 @@ async def checkout(
         user_id=current_user.id if current_user else None,
         gateway=data.payment_method,
         amount=total,
-        status="pending",
+        status="cod_pending" if data.payment_method == "cod" else "pending",
     )
     db.add(payment)
 
@@ -213,6 +250,39 @@ async def checkout(
             send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
         )
 
+    # Notify admin of new order (email + in-platform)
+    admin_order_url = f"{__import__('app.config', fromlist=['settings']).settings.frontend_url}/admin/orders/{full_order.id}"
+    customer_name = current_user.first_name + " " + current_user.last_name if current_user else data.shipping_full_name
+    customer_email_for_admin = current_user.email if current_user else (data.guest_email or "")
+    asyncio.create_task(
+        send_admin_new_order(
+            order_number=full_order.order_number,
+            customer_name=customer_name,
+            customer_email=customer_email_for_admin,
+            order_total=total_str,
+            item_count=len(full_order.items),
+            order_admin_url=admin_order_url,
+        )
+    )
+
+    # Create in-platform notifications
+    await create_admin_notification(
+        db,
+        "new_order",
+        f"New Order — {full_order.order_number}",
+        f"{customer_name} placed an order for {total_str}.",
+        {"order_id": str(full_order.id), "order_number": full_order.order_number},
+    )
+    if current_user:
+        await create_notification(
+            db,
+            current_user.id,
+            "order_placed",
+            f"Order Placed — {full_order.order_number}",
+            f"Your order of {total_str} has been received and is being processed.",
+            {"order_number": full_order.order_number, "order_url": order_url},
+        )
+
     return full_order
 
 
@@ -247,11 +317,14 @@ async def list_orders(
 
 
 @router.get("/{order_number}", response_model=OrderOut)
+@limiter.limit("20/minute")
 async def get_order(
+    request: Request,
     order_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_user),
     guest_email: Optional[str] = Query(default=None),
+    guest_token: Optional[str] = Query(default=None),
 ):
     query = (
         select(Order)
@@ -261,12 +334,13 @@ async def get_order(
     if current_user:
         query = query.where(Order.user_id == current_user.id)
     else:
-        # Guests must provide the email used at checkout to prove ownership
-        if not guest_email:
-            raise HTTPException(status_code=401, detail="Email verification required")
+        # Guests must provide both email AND the guest_token issued at checkout
+        if not guest_email or not guest_token:
+            raise HTTPException(status_code=401, detail="Guest verification required")
         query = query.where(
             Order.user_id.is_(None),
             Order.guest_email == guest_email.lower().strip(),
+            Order.guest_token == guest_token,
         )
     result = await db.execute(query)
     order = result.scalar_one_or_none()
@@ -304,8 +378,17 @@ async def cancel_order(
 
 # ─── Return Request Endpoints ─────────────────────────────────────────────────
 
+class ReturnItem(_BaseModel):
+    variant_id: uuid.UUID
+    quantity: int = 1
+
+    def model_post_init(self, __context: object) -> None:
+        if self.quantity < 1:
+            raise ValueError("quantity must be at least 1")
+
+
 class ReturnRequestCreate(_BaseModel):
-    items: list[dict]  # [{"variant_id": "...", "quantity": 1}]
+    items: list[ReturnItem]
     reason: str        # wrong_size | doesnt_fit | defective | not_as_described | changed_mind | other
     customer_note: str | None = None
 
@@ -351,12 +434,47 @@ async def request_return(
     ret = ReturnRequest(
         order_id=order.id,
         user_id=current_user.id,
-        items=data.items,
+        items=[{"variant_id": str(i.variant_id), "quantity": i.quantity} for i in data.items],
         reason=data.reason,
         customer_note=data.customer_note,
     )
     db.add(ret)
     await db.flush()
+
+    # Fire emails + notifications (non-blocking)
+    from app.config import settings as _settings
+    order_url = f"{_settings.frontend_url}/account/orders/{order_number}"
+    return_admin_url = f"{_settings.frontend_url}/admin/returns"
+    asyncio.create_task(send_return_submitted(
+        current_user.email,
+        current_user.first_name or current_user.full_name,
+        order_number,
+        data.reason,
+        order_url,
+    ))
+    asyncio.create_task(send_admin_new_return(
+        order_number,
+        current_user.full_name,
+        current_user.email,
+        data.reason,
+        data.customer_note,
+        return_admin_url,
+    ))
+    await create_notification(
+        db,
+        current_user.id,
+        "return",
+        "Return Request Submitted",
+        f"Your return request for order {order_number} has been received. We'll respond within 1–2 business days.",
+        {"order_number": order_number},
+    )
+    await create_admin_notification(
+        db,
+        "return",
+        "New Return Request",
+        f"{current_user.full_name} has submitted a return request for order {order_number}.",
+        {"order_number": order_number},
+    )
 
     return {
         "id": str(ret.id),

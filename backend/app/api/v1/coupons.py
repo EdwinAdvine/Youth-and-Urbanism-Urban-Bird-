@@ -29,9 +29,9 @@ async def validate_coupon(data: CouponValidateRequest, db: AsyncSession = Depend
         raise HTTPException(status_code=404, detail="Coupon not found")
 
     now = datetime.now(timezone.utc)
-    if coupon.expires_at.replace(tzinfo=timezone.utc) < now:
+    if coupon.expires_at and coupon.expires_at.replace(tzinfo=timezone.utc) < now:
         raise HTTPException(status_code=400, detail="Coupon has expired")
-    if coupon.starts_at.replace(tzinfo=timezone.utc) > now:
+    if coupon.starts_at and coupon.starts_at.replace(tzinfo=timezone.utc) > now:
         raise HTTPException(status_code=400, detail="Coupon is not yet active")
     if data.order_subtotal < coupon.min_order_amount:
         raise HTTPException(

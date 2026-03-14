@@ -5,8 +5,10 @@ import { useOrderStore } from "../../store/orderStore";
 import Badge from "../../components/ui/Badge";
 import { formatKSh, formatDate } from "../../utils/formatPrice";
 import { ORDER_STATUSES } from "../../utils/constants";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function OrderHistoryPage() {
+  useSEO({ title: "My Orders", noindex: true });
   const { orders, isLoading, fetchOrders } = useOrderStore();
 
   useEffect(() => {

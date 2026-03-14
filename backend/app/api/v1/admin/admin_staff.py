@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timezone
 from typing import Optional
@@ -28,6 +28,16 @@ class StaffCreate(BaseModel):
 
 class RoleUpdate(BaseModel):
     role: str
+
+
+class StaffUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class PasswordReset(BaseModel):
+    new_password: str
 
 
 async def _log(
@@ -222,34 +232,136 @@ async def delete_staff(
     )
 
 
+@router.get("/stats")
+async def get_staff_stats(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_super_admin),
+):
+    result = await db.execute(
+        select(User).where(User.role.in_(["admin", "super_admin", "viewer"]), User.is_deleted == False)
+    )
+    all_staff = result.scalars().all()
+    return {
+        "total": len(all_staff),
+        "active": sum(1 for s in all_staff if s.is_active),
+        "inactive": sum(1 for s in all_staff if not s.is_active),
+        "by_role": {
+            "super_admin": sum(1 for s in all_staff if s.role == "super_admin"),
+            "admin": sum(1 for s in all_staff if s.role == "admin"),
+            "viewer": sum(1 for s in all_staff if s.role == "viewer"),
+        },
+    }
+
+
+@router.patch("/{staff_id}")
+async def update_staff(
+    staff_id: uuid.UUID,
+    data: StaffUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_super_admin),
+):
+    result = await db.execute(select(User).where(User.id == staff_id, User.is_deleted == False))
+    staff = result.scalar_one_or_none()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+    old_data = {"first_name": staff.first_name, "last_name": staff.last_name, "phone": staff.phone}
+    if data.first_name is not None:
+        staff.first_name = data.first_name
+    if data.last_name is not None:
+        staff.last_name = data.last_name
+    if data.phone is not None:
+        staff.phone = data.phone
+
+    await _log(
+        db, admin,
+        action="update_staff",
+        entity_type="user",
+        entity_id=str(staff.id),
+        old_value=old_data,
+        new_value={"first_name": staff.first_name, "last_name": staff.last_name, "phone": staff.phone},
+        description=f"Updated profile for staff account {staff.email}",
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return {"message": "Staff profile updated", "email": staff.email}
+
+
+@router.patch("/{staff_id}/reset-password")
+async def reset_staff_password(
+    staff_id: uuid.UUID,
+    data: PasswordReset,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_super_admin),
+):
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    result = await db.execute(select(User).where(User.id == staff_id, User.is_deleted == False))
+    staff = result.scalar_one_or_none()
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff member not found")
+
+    staff.password_hash = hash_password(data.new_password)
+
+    await _log(
+        db, admin,
+        action="reset_password",
+        entity_type="user",
+        entity_id=str(staff.id),
+        description=f"Reset password for staff account {staff.email}",
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return {"message": "Password reset successfully"}
+
+
 @router.get("/audit-log")
 async def get_audit_log(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_super_admin),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
+    action: Optional[str] = Query(None),
 ):
-    result = await db.execute(
+    base_query = (
         select(AuditLog, User.first_name, User.last_name, User.email)
         .join(User, User.id == AuditLog.admin_id, isouter=True)
-        .order_by(AuditLog.created_at.desc())
-        .offset((page - 1) * limit)
-        .limit(limit)
+    )
+    if action:
+        base_query = base_query.where(AuditLog.action == action)
+
+    # Total count
+    count_query = select(func.count()).select_from(AuditLog)
+    if action:
+        count_query = count_query.where(AuditLog.action == action)
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+
+    result = await db.execute(
+        base_query.order_by(AuditLog.created_at.desc()).offset((page - 1) * limit).limit(limit)
     )
     rows = result.all()
-    return [
-        {
-            "id": str(row.AuditLog.id),
-            "admin": f"{row.first_name} {row.last_name}" if row.first_name else "Unknown",
-            "admin_email": row.email,
-            "action": row.AuditLog.action,
-            "entity_type": row.AuditLog.entity_type,
-            "entity_id": row.AuditLog.entity_id,
-            "description": row.AuditLog.description,
-            "old_value": row.AuditLog.old_value,
-            "new_value": row.AuditLog.new_value,
-            "ip_address": row.AuditLog.ip_address,
-            "created_at": row.AuditLog.created_at.isoformat(),
-        }
-        for row in rows
-    ]
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "items": [
+            {
+                "id": str(row.AuditLog.id),
+                "admin": f"{row.first_name} {row.last_name}" if row.first_name else "Unknown",
+                "admin_email": row.email,
+                "action": row.AuditLog.action,
+                "entity_type": row.AuditLog.entity_type,
+                "entity_id": row.AuditLog.entity_id,
+                "description": row.AuditLog.description,
+                "old_value": row.AuditLog.old_value,
+                "new_value": row.AuditLog.new_value,
+                "ip_address": row.AuditLog.ip_address,
+                "created_at": row.AuditLog.created_at.isoformat(),
+            }
+            for row in rows
+        ],
+    }

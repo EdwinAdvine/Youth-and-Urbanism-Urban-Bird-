@@ -51,15 +51,25 @@ services:
       retries: 5
       start_period: 30s
 
+  postfix:
+    image: boky/postfix
+    container_name: urbanbird_postfix
+    environment:
+      HOSTNAME: urbanbird.co.ke
+      RELAYHOST: ""
+      ALLOWED_SENDER_DOMAINS: "urbanbird.co.ke youthandurbanism.org"
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: urbanbird_frontend
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

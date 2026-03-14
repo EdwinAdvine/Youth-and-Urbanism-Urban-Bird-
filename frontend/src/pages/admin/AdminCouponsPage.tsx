@@ -1,45 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSEO } from "../../hooks/useSEO";
 
 interface Coupon {
-  id: number;
+  id: string;
   code: string;
-  type: 'percentage' | 'fixed';
-  value: number;
-  min_order: number;
-  usage_count: number;
+  description: string | null;
+  discount_type: 'percentage' | 'fixed_amount';
+  discount_value: number;
+  min_order_amount: number;
+  max_discount_amount: number | null;
+  times_used: number;
   usage_limit: number | null;
+  per_user_limit: number;
   is_active: boolean;
+  starts_at: string | null;
   expires_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 interface CouponForm {
   code: string;
-  type: 'percentage' | 'fixed';
-  value: number;
-  min_order: number;
+  description: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  discount_value: number;
+  min_order_amount: number;
+  max_discount_amount: number | null;
   usage_limit: number | null;
   expires_at: string;
+  is_active: boolean;
 }
 
 const emptyForm: CouponForm = {
   code: '',
-  type: 'percentage',
-  value: 10,
-  min_order: 0,
+  description: '',
+  discount_type: 'percentage',
+  discount_value: 10,
+  min_order_amount: 0,
+  max_discount_amount: null,
   usage_limit: null,
   expires_at: '',
+  is_active: true,
 };
 
 export default function AdminCouponsPage() {
+  useSEO({ title: "Coupons", noindex: true });
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [form, setForm] = useState<CouponForm>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchCoupons = async () => {
@@ -56,8 +69,25 @@ export default function AdminCouponsPage() {
 
   useEffect(() => { fetchCoupons(); }, []);
 
-  const openModal = () => {
+  const openCreateModal = () => {
+    setEditingCoupon(null);
     setForm(emptyForm);
+    setModal(true);
+  };
+
+  const openEditModal = (coupon: Coupon) => {
+    setEditingCoupon(coupon);
+    setForm({
+      code: coupon.code,
+      description: coupon.description ?? '',
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value,
+      min_order_amount: coupon.min_order_amount,
+      max_discount_amount: coupon.max_discount_amount,
+      usage_limit: coupon.usage_limit,
+      expires_at: coupon.expires_at ? coupon.expires_at.split('T')[0] : '',
+      is_active: coupon.is_active,
+    });
     setModal(true);
   };
 
@@ -67,15 +97,27 @@ export default function AdminCouponsPage() {
       setSaving(true);
       const payload = {
         ...form,
-        expires_at: form.expires_at || null,
+        description: form.description || null,
+        expires_at: form.expires_at ? new Date(form.expires_at + 'T23:59:59Z').toISOString() : undefined,
         usage_limit: form.usage_limit || null,
+        max_discount_amount: form.max_discount_amount || null,
       };
-      await api.post('/api/v1/admin/coupons', payload);
-      toast.success('Coupon created');
+
+      if (editingCoupon) {
+        const res = await api.patch(`/api/v1/admin/coupons/${editingCoupon.id}`, payload);
+        const updated: Coupon = res.data;
+        setCoupons((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        toast.success('Coupon updated');
+      } else {
+        const res = await api.post('/api/v1/admin/coupons', payload);
+        const created: Coupon = res.data;
+        setCoupons((prev) => [created, ...prev]);
+        toast.success('Coupon created');
+      }
       setModal(false);
-      fetchCoupons();
-    } catch {
-      toast.error('Failed to create coupon');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : editingCoupon ? 'Failed to update coupon' : 'Failed to create coupon');
     } finally {
       setSaving(false);
     }
@@ -123,7 +165,7 @@ export default function AdminCouponsPage() {
           <p className="text-sm text-gray-500 mt-1">Create and manage discount codes</p>
         </div>
         <button
-          onClick={openModal}
+          onClick={openCreateModal}
           className="bg-[#782121] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#5e1a1a] transition-colors"
         >
           + New Coupon
@@ -172,28 +214,34 @@ export default function AdminCouponsPage() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Used</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Expires</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600">Action</th>
+                <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((coupon) => (
                 <tr key={coupon.id} className={`border-b border-gray-100 hover:bg-gray-50 ${!coupon.is_active ? 'opacity-60' : ''}`}>
-                  <td className="px-4 py-3 font-mono font-bold text-gray-900 tracking-widest text-xs">
-                    {coupon.code}
+                  <td className="px-4 py-3">
+                    <span className="font-mono font-bold text-gray-900 tracking-widest text-xs">{coupon.code}</span>
+                    {coupon.description && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[140px]">{coupon.description}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${coupon.type === 'percentage' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {coupon.type}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${coupon.discount_type === 'percentage' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {coupon.discount_type === 'percentage' ? '%' : 'KES'}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-800">
-                    {coupon.type === 'percentage' ? `${coupon.value}%` : `KES ${coupon.value}`}
+                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `KES ${coupon.discount_value}`}
+                    {coupon.max_discount_amount && (
+                      <span className="text-xs text-gray-400 ml-1">(max {coupon.max_discount_amount})</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {coupon.min_order > 0 ? `KES ${coupon.min_order}` : '—'}
+                    {coupon.min_order_amount > 0 ? `KES ${coupon.min_order_amount}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {coupon.usage_count}
+                    {coupon.times_used}
                     {coupon.usage_limit ? ` / ${coupon.usage_limit}` : ''}
                   </td>
                   <td className={`px-4 py-3 text-xs ${isExpired(coupon.expires_at) ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
@@ -206,15 +254,23 @@ export default function AdminCouponsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {coupon.is_active && (
+                    <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => deactivate(coupon)}
-                        disabled={deactivatingId === coupon.id}
-                        className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 font-medium"
+                        onClick={() => openEditModal(coupon)}
+                        className="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 font-medium"
                       >
-                        {deactivatingId === coupon.id ? '...' : 'Deactivate'}
+                        Edit
                       </button>
-                    )}
+                      {coupon.is_active && (
+                        <button
+                          onClick={() => deactivate(coupon)}
+                          disabled={deactivatingId === coupon.id}
+                          className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 font-medium"
+                        >
+                          {deactivatingId === coupon.id ? '...' : 'Deactivate'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -231,12 +287,16 @@ export default function AdminCouponsPage() {
         </div>
       )}
 
-      {/* Create Coupon Modal */}
+      {/* Create / Edit Modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h2 className="text-lg font-bold font-lexend text-gray-900 mb-5">Create New Coupon</h2>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold font-lexend text-gray-900 mb-5">
+              {editingCoupon ? `Edit Coupon — ${editingCoupon.code}` : 'Create New Coupon'}
+            </h2>
             <form onSubmit={saveCoupon} className="space-y-4">
+
+              {/* Code */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Coupon Code</label>
                 <div className="flex gap-2">
@@ -248,55 +308,88 @@ export default function AdminCouponsPage() {
                     placeholder="e.g. SAVE20"
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#782121]"
                   />
-                  <button
-                    type="button"
-                    onClick={generateCode}
-                    className="px-3 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 whitespace-nowrap"
-                  >
-                    Generate
-                  </button>
+                  {!editingCoupon && (
+                    <button
+                      type="button"
+                      onClick={generateCode}
+                      className="px-3 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                    >
+                      Generate
+                    </button>
+                  )}
                 </div>
               </div>
 
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="e.g. 20% off for new customers"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
+                />
+              </div>
+
+              {/* Type + Value */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
                   <select
-                    value={form.type}
-                    onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'percentage' | 'fixed' }))}
+                    value={form.discount_type}
+                    onChange={(e) => setForm((f) => ({ ...f, discount_type: e.target.value as 'percentage' | 'fixed_amount' }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
                   >
                     <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed (KES)</option>
+                    <option value="fixed_amount">Fixed (KES)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Value {form.type === 'percentage' ? '(%)' : '(KES)'}
+                    Value {form.discount_type === 'percentage' ? '(%)' : '(KES)'}
                   </label>
                   <input
                     type="number"
                     required
                     min={1}
-                    max={form.type === 'percentage' ? 100 : undefined}
-                    value={form.value}
-                    onChange={(e) => setForm((f) => ({ ...f, value: Number(e.target.value) }))}
+                    max={form.discount_type === 'percentage' ? 100 : undefined}
+                    value={form.discount_value}
+                    onChange={(e) => setForm((f) => ({ ...f, discount_value: Number(e.target.value) }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
                   />
                 </div>
               </div>
 
+              {/* Min Order + Max Discount */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Min Order (KES)</label>
                   <input
                     type="number"
                     min={0}
-                    value={form.min_order}
-                    onChange={(e) => setForm((f) => ({ ...f, min_order: Number(e.target.value) }))}
+                    value={form.min_order_amount}
+                    onChange={(e) => setForm((f) => ({ ...f, min_order_amount: Number(e.target.value) }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
                   />
                 </div>
+                {form.discount_type === 'percentage' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Discount (KES)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="No cap"
+                      value={form.max_discount_amount ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, max_discount_amount: e.target.value ? Number(e.target.value) : null }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Usage Limit + Expiry */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Usage Limit</label>
                   <input
@@ -308,18 +401,32 @@ export default function AdminCouponsPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={form.expires_at}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (optional)</label>
-                <input
-                  type="date"
-                  value={form.expires_at}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#782121]"
-                />
-              </div>
+              {/* Active toggle (edit only) */}
+              {editingCoupon && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                  <span className="text-sm text-gray-700">{form.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -334,7 +441,7 @@ export default function AdminCouponsPage() {
                   disabled={saving}
                   className="px-4 py-2 text-sm rounded-lg bg-[#782121] text-white font-semibold hover:bg-[#5e1a1a] disabled:opacity-50"
                 >
-                  {saving ? 'Creating...' : 'Create Coupon'}
+                  {saving ? (editingCoupon ? 'Saving...' : 'Creating...') : (editingCoupon ? 'Save Changes' : 'Create Coupon')}
                 </button>
               </div>
             </form>

@@ -221,6 +221,36 @@ export default function ProductDetailPage() {
     description: currentProduct?.seo_description ?? currentProduct?.short_description ?? undefined,
     image: primaryImg?.url,
     type: "product",
+    url: slug ? `https://urbanbird.co.ke/products/${slug}` : undefined,
+    jsonLd: currentProduct
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: currentProduct.name,
+          description: currentProduct.short_description || currentProduct.name,
+          image: primaryImg?.url,
+          sku: currentProduct.variants?.[0]?.sku,
+          brand: { "@type": "Brand", name: "Urban Bird" },
+          offers: {
+            "@type": "Offer",
+            price: currentProduct.price,
+            priceCurrency: "KES",
+            availability:
+              (currentProduct.variants?.some((v) => v.stock_quantity > 0))
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+            url: `https://urbanbird.co.ke/products/${slug}`,
+            seller: { "@type": "Organization", name: "Urban Bird" },
+          },
+          ...(currentProduct.review_count > 0 && {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: currentProduct.average_rating,
+              reviewCount: currentProduct.review_count,
+            },
+          }),
+        }
+      : null,
   });
 
   useEffect(() => {

@@ -6,13 +6,16 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Logo from "../../components/header/Logo";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function RegisterPage() {
+  useSEO({ title: "Create Account", noindex: true });
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
+    gender: "",
     password: "",
     confirm_password: "",
   });
@@ -24,9 +27,21 @@ export default function RegisterPage() {
     setForm((f) => ({ ...f, [k]: e.target.value }));
   };
 
+  const passwordErrors: string[] = [];
+  if (form.password) {
+    if (form.password.length < 8) passwordErrors.push("at least 8 characters");
+    if (!/[A-Z]/.test(form.password)) passwordErrors.push("one uppercase letter");
+    if (!/[0-9]/.test(form.password)) passwordErrors.push("one number");
+  }
+  const passwordStrong = form.password.length > 0 && passwordErrors.length === 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    if (passwordErrors.length > 0) {
+      toast.error(`Password needs: ${passwordErrors.join(", ")}`);
+      return;
+    }
     if (form.password !== form.confirm_password) {
       toast.error("Passwords do not match");
       return;
@@ -37,6 +52,7 @@ export default function RegisterPage() {
         last_name: form.last_name,
         email: form.email,
         phone: form.phone || undefined,
+        gender: form.gender || undefined,
         password: form.password,
       });
       toast.success("Account created! Welcome to Urban Bird.");
@@ -68,19 +84,41 @@ export default function RegisterPage() {
           </div>
           <Input label="Email" type="email" value={form.email} onChange={set("email")} placeholder="john@example.com" required />
           <Input label="Phone (optional)" type="tel" value={form.phone} onChange={set("phone")} placeholder="0712 345 678" hint="Format: 07XX XXX XXX" />
-          <Input
-            label="Password"
-            type={showPwd ? "text" : "password"}
-            value={form.password}
-            onChange={set("password")}
-            placeholder="Min. 8 characters"
-            required
-            rightIcon={
-              <button type="button" onClick={() => setShowPwd((v) => !v)} className="text-gray-400 hover:text-gray-600">
-                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 font-manrope mb-1">
+              Gender <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <select
+              value={form.gender}
+              onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-manrope text-gray-700 focus:outline-none focus:ring-2 focus:ring-maroon-700 focus:border-transparent bg-white"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <Input
+              label="Password"
+              type={showPwd ? "text" : "password"}
+              value={form.password}
+              onChange={set("password")}
+              placeholder="Min. 8 chars, uppercase & number"
+              required
+              rightIcon={
+                <button type="button" onClick={() => setShowPwd((v) => !v)} className="text-gray-400 hover:text-gray-600">
+                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
+            />
+            {form.password && (
+              <p className={`text-xs mt-1 font-manrope ${passwordStrong ? "text-green-600" : "text-amber-600"}`}>
+                {passwordStrong ? "✓ Strong password" : `Needs: ${passwordErrors.join(", ")}`}
+              </p>
+            )}
+          </div>
           <Input
             label="Confirm Password"
             type="password"

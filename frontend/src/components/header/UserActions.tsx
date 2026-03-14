@@ -5,6 +5,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { useWishlistStore } from "../../store/wishlistStore";
 import { useUIStore } from "../../store/uiStore";
+import NotificationBell from "./NotificationBell";
 
 export default function UserActions() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,6 +34,11 @@ export default function UserActions() {
 
   return (
     <div className="flex items-center gap-1">
+      {/* Notifications (only when logged in) */}
+      {isAuthenticated && (
+        <NotificationBell isAdmin={["admin", "super_admin"].includes(user?.role || "")} />
+      )}
+
       {/* Wishlist */}
       <Link
         to="/wishlist"
@@ -87,6 +93,7 @@ export default function UserActions() {
                   { to: "/account", icon: <User size={16} />, label: "Dashboard" },
                   { to: "/account/orders", icon: <Package size={16} />, label: "My Orders" },
                   { to: "/account/addresses", icon: <MapPin size={16} />, label: "Addresses" },
+                  { to: "/account/notifications", icon: <Package size={16} />, label: "Notifications" },
                   { to: "/account/settings", icon: <Settings size={16} />, label: "Settings" },
                 ].map((item) => (
                   <Link

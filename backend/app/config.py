@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from functools import lru_cache
 
 
@@ -42,6 +43,16 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret_key: str = "change_me_very_long_random_secret_key_at_least_32_chars"
     jwt_algorithm: str = "HS256"
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def validate_jwt_secret(cls, v: str) -> str:
+        if "change_me" in v.lower() or len(v) < 32:
+            raise ValueError(
+                "JWT_SECRET_KEY must be set to a strong random value (minimum 32 characters). "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return v
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
@@ -63,14 +74,25 @@ class Settings(BaseSettings):
     paystack_public_key: str = ""
     paystack_webhook_secret: str = ""
 
-    # Email
-    smtp_host: str = "smtp.gmail.com"
+    # Email — SMTP (outbound)
+    smtp_host: str = "smtp.office365.com"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from_name: str = "Urban Bird"
-    from_email: str = "noreply@urbanbird.co.ke"
+    from_email: str = ""
     from_name: str = "Urban Bird"
+
+    # Email — IMAP (inbound, for future reply parsing)
+    imap_host: str = "outlook.office365.com"
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    imap_ssl: bool = True
+
+    # Admin
+    admin_email: str = ""
+    admin_name: str = "Urban Bird Admin"
 
     # SMS (Africa's Talking)
     at_username: str = "sandbox"

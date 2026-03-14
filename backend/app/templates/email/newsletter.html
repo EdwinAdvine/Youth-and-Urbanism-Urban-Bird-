@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Urban Bird Newsletter{% endblock %}
+{% block content %}
+<p>Hi {{ name }},</p>
+
+{{ body | safe }}
+
+<center style="margin-top:32px;">
+  <a href="{{ shop_url }}/shop" class="cta">Shop Now</a>
+</center>
+
+<p style="color:#6b7280;font-size:12px;margin-top:32px;text-align:center;">
+  You're receiving this because you subscribed to Urban Bird updates.<br />
+  To unsubscribe, reply to this email with "Unsubscribe" or visit
+  <a href="{{ shop_url }}/unsubscribe" style="color:#782121;">{{ shop_url }}/unsubscribe</a>.
+</p>
+{% endblock %}

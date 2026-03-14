@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Order Dispatched — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>Order Dispatched 📦</h2>
+<p>Hi {{ admin_name }}, order <strong>{{ order_number }}</strong> has been marked as dispatched.</p>
+
+<div class="order-box">
+  <div class="order-row">
+    <span style="color:#6b7280">Order Number</span>
+    <strong>{{ order_number }}</strong>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Customer</span>
+    <strong>{{ customer_name }}</strong>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Tracking Number</span>
+    <strong>{{ tracking_number }}</strong>
+  </div>
+</div>
+
+<p>The customer has also been notified by email. You can track this order in the dashboard.</p>
+<center>
+  <a href="{{ order_admin_url }}" class="cta">View Order</a>
+</center>
+{% endblock %}

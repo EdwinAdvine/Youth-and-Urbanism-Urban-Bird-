@@ -7,12 +7,14 @@ import Input from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import { KENYAN_COUNTIES } from "../../utils/constants";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 const blank: Partial<Address> = {
   full_name: "", phone: "", address_line_1: "", address_line_2: "", city: "", county: "", is_default: false,
 };
 
 export default function AddressesPage() {
+  useSEO({ title: "My Addresses", noindex: true });
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);

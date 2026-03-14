@@ -97,3 +97,31 @@ async def update_subcategory(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(sub, field, value)
     return sub
+
+
+@router.delete("/{category_id}", status_code=204)
+async def delete_category(
+    category_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    result = await db.execute(
+        select(Category).options(selectinload(Category.subcategories)).where(Category.id == category_id)
+    )
+    category = result.scalar_one_or_none()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    await db.delete(category)
+
+
+@router.delete("/subcategories/{subcategory_id}", status_code=204)
+async def delete_subcategory(
+    subcategory_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    result = await db.execute(select(Subcategory).where(Subcategory.id == subcategory_id))
+    sub = result.scalar_one_or_none()
+    if not sub:
+        raise HTTPException(status_code=404, detail="Subcategory not found")
+    await db.delete(sub)

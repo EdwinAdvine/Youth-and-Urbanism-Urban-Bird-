@@ -7,10 +7,12 @@ import Button from "../../components/ui/Button";
 import { formatKSh, formatDate } from "../../utils/formatPrice";
 import { ORDER_STATUSES } from "../../utils/constants";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 const STATUS_FLOW = ["pending_payment", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
 
 export default function AdminOrderDetailPage() {
+  useSEO({ title: "Order Detail", noindex: true });
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

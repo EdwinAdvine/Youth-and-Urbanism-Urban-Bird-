@@ -1,20 +1,25 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Package, Heart, MapPin, ArrowRight } from "lucide-react";
+import { Package, Heart, MapPin, ArrowRight, Bell } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useOrderStore } from "../../store/orderStore";
 import { useWishlistStore } from "../../store/wishlistStore";
+import { useNotificationStore } from "../../store/notificationStore";
 import { formatKSh, formatDate } from "../../utils/formatPrice";
 import Badge from "../../components/ui/Badge";
 import { ORDER_STATUSES } from "../../utils/constants";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AccountDashboardPage() {
+  useSEO({ title: "My Account", noindex: true });
   const user = useAuthStore((s) => s.user);
   const { orders, fetchOrders, isLoading } = useOrderStore();
   const wishlistCount = useWishlistStore((s) => s.productIds.length);
+  const { notifications, unreadCount, fetchNotifications } = useNotificationStore();
 
   useEffect(() => {
     fetchOrders(1);
+    fetchNotifications(1);
   }, []);
 
   const getStatusVariant = (status: string): any => {
@@ -53,6 +58,44 @@ export default function AccountDashboardPage() {
         ))}
       </div>
 
+      {/* Recent notifications */}
+      {notifications.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold font-lexend text-gray-900">Notifications</h2>
+              {unreadCount > 0 && (
+                <span className="bg-maroon-700 text-white text-xs px-1.5 py-0.5 rounded-full font-manrope leading-none">
+                  {unreadCount} new
+                </span>
+              )}
+            </div>
+            <Link to="/account/notifications" className="text-sm text-maroon-700 font-manrope font-medium flex items-center gap-1 hover:text-maroon-800">
+              View all <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {notifications.slice(0, 3).map((n) => (
+              <div
+                key={n.id}
+                className={`flex items-start gap-3 px-6 py-3 ${!n.is_read ? "bg-maroon-50/40" : ""}`}
+              >
+                <div className={`mt-0.5 p-1.5 rounded-lg flex-shrink-0 ${!n.is_read ? "bg-maroon-100 text-maroon-700" : "bg-gray-100 text-gray-400"}`}>
+                  <Bell size={14} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-manrope ${!n.is_read ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+                    {n.title}
+                  </p>
+                  <p className="text-xs text-gray-500 font-manrope mt-0.5 truncate">{n.message}</p>
+                </div>
+                {!n.is_read && <span className="w-2 h-2 rounded-full bg-maroon-700 flex-shrink-0 mt-2" />}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent orders */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -82,7 +125,7 @@ export default function AccountDashboardPage() {
               >
                 <div>
                   <p className="text-sm font-semibold font-manrope text-gray-900">{order.order_number}</p>
-                  <p className="text-xs text-gray-500 font-manrope">{formatDate(order.created_at)} · {order.item_count ?? 0} items</p>
+                  <p className="text-xs text-gray-500 font-manrope">{formatDate(order.created_at)} · {order.items?.length ?? 0} items</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={getStatusVariant(order.status)}>

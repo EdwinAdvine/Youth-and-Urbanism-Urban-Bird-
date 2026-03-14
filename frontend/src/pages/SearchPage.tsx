@@ -2,11 +2,20 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProductStore } from "../store/productStore";
 import ProductGrid from "../components/product/ProductGrid";
+import { useSEO } from "../hooks/useSEO";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const { products, totalCount, isLoading, fetchProducts } = useProductStore();
+
+  useSEO({
+    title: query ? `Search: "${query}"` : "Search",
+    description: query
+      ? `${totalCount} results for "${query}" on Urban Bird — Kenya's premier urban streetwear store.`
+      : "Search Urban Bird's full range of urban streetwear — hoodies, sweatpants, jackets & more.",
+    noindex: true,
+  });
 
   useEffect(() => {
     if (query) fetchProducts({ search: query, sort: "popularity" }, 1);

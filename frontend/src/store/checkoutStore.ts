@@ -84,9 +84,11 @@ export const useCheckoutStore = create<CheckoutState>()((set) => ({
   prefillFromAddress: (address) =>
     set({
       shippingData: {
-        first_name: address.first_name ?? address.full_name?.split(" ")[0] ?? "",
-        last_name: address.last_name ?? address.full_name?.split(" ").slice(1).join(" ") ?? "",
+        first_name: address.full_name?.split(" ")[0] ?? "",
+        last_name: address.full_name?.split(" ").slice(1).join(" ") ?? "",
         phone: address.phone,
+        address_line_1: address.address_line_1,
+        address_line_2: address.address_line_2,
         city: address.city,
         county: address.county,
       },

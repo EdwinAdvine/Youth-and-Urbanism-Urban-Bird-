@@ -9,31 +9,31 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 import { useSEO } from "../hooks/useSEO";
 
-// ─── Hero slides (images from urbanbird.co.ke) ───────────────────────────────
+// ─── Hero slides ──────────────────────────────────────────────────────────────
 const HERO_SLIDES = [
   {
-    image: "https://urbanbird.co.ke/wp-content/uploads/2026/01/Hero-slide-1.webp",
+    image: "/slides/027.jpg",
     title: "Shop Men",
     subtitle: "Redefining Urban Elegance",
     cta: "Shop Men's",
     link: "/category/men",
   },
   {
-    image: "https://urbanbird.co.ke/wp-content/uploads/2026/01/Hero-slide-3.webp",
+    image: "/slides/043.jpg",
     title: "Shop Women",
     subtitle: "Redefining Urban Elegance",
     cta: "Shop Women's",
     link: "/category/women",
   },
   {
-    image: "https://urbanbird.co.ke/wp-content/uploads/2026/01/Hero-slide-2.webp",
+    image: "/slides/096.jpg",
     title: "TRENDY URBAN",
     subtitle: "Premium Streetwear",
     cta: "Shop Now",
     link: "/shop",
   },
   {
-    image: "https://urbanbird.co.ke/wp-content/uploads/2026/01/Hero-slide-4.jpg",
+    image: "/slides/sat26.jpg",
     title: "MADE TO COMMAND",
     subtitle: "New Collection 2025",
     cta: "Explore",
@@ -43,49 +43,52 @@ const HERO_SLIDES = [
 
 // ─── Category data ────────────────────────────────────────────────────────────
 const ALL_SLIDES = [
-  "/slides/017.jpg", "/slides/018.jpg", "/slides/020.jpg", "/slides/027.jpg",
-  "/slides/028.jpg", "/slides/029.jpg", "/slides/033.jpg", "/slides/036.jpg",
-  "/slides/040.jpg", "/slides/043.jpg", "/slides/046.jpg", "/slides/047.jpg",
-  "/slides/048.jpg", "/slides/049.jpg", "/slides/056.jpg", "/slides/057.jpg",
-  "/slides/060.jpg", "/slides/066.jpg", "/slides/067.jpg", "/slides/096.jpg",
-  "/slides/sat13.jpg", "/slides/sat14.jpg", "/slides/sat16.jpg", "/slides/sat17.jpg",
-  "/slides/sat22.jpg", "/slides/sat24.jpg", "/slides/sat26.jpg", "/slides/sat27.jpg",
-  "/slides/sat28.jpg", "/slides/sat31.jpg", "/slides/sat32.jpg", "/slides/sat36.jpg",
-  "/slides/sat9.jpg",
+  "/slides/027.jpg", "/slides/033.jpg", "/slides/043.jpg",
+  "/slides/046.jpg", "/slides/056.jpg", "/slides/060.jpg",
+  "/slides/096.jpg", "/slides/sat26.jpg", "/slides/018 copy.jpg",
 ];
 
 const CATEGORIES = [
   { slug: "men",   label: "Men",   startIndex: 0 },
-  { slug: "women", label: "Women", startIndex: 11 },
-  { slug: "kids",  label: "Kids",  startIndex: 22 },
+  { slug: "women", label: "Women", startIndex: 3 },
+  { slug: "kids",  label: "Kids",  startIndex: 6 },
 ];
 
 function CategoryCard({ slug, label, startIndex }: { slug: string; label: string; startIndex: number }) {
-  const [current, setCurrent] = useState(startIndex % ALL_SLIDES.length);
+  const categorySlides = ALL_SLIDES.slice(startIndex, startIndex + 3);
+  const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % ALL_SLIDES.length);
+      setCurrent((prev) => (prev + 1) % categorySlides.length);
     }, 6000);
     return () => clearInterval(id);
-  }, []);
+  }, [categorySlides.length]);
+
+  // Only render current and next slide for performance
+  const nextIndex = (current + 1) % categorySlides.length;
 
   return (
     <Link
       to={`/category/${slug}`}
       className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-md"
     >
-      {ALL_SLIDES.map((src, i) => (
-        <img
-          key={src}
-          src={src}
-          alt={label}
-          className={`absolute inset-0 w-full h-full object-cover ${
-            i === current ? "opacity-100" : "opacity-0"
-          }`}
-          style={{ transition: "opacity 2s ease-in-out" }}
-        />
-      ))}
+      <img
+        src={categorySlides[nextIndex]}
+        alt={label}
+        className="absolute inset-0 w-full h-full object-cover opacity-0"
+        loading="lazy"
+        decoding="async"
+      />
+      <img
+        key={categorySlides[current]}
+        src={categorySlides[current]}
+        alt={label}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ animation: "fadeIn 2s ease-in-out" }}
+        loading="lazy"
+        decoding="async"
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-6">
         <h3 className="text-base sm:text-2xl font-bold font-lexend text-white">{label}</h3>
@@ -127,7 +130,7 @@ function HeroCarousel() {
   }, [emblaApi, startAutoplay]);
 
   return (
-    <section className="relative overflow-hidden bg-black" style={{ height: "78vh", minHeight: 400 }}>
+    <section className="relative overflow-hidden bg-black" style={{ height: "clamp(350px, 55vh, 78vh)", minHeight: 350 }}>
       {/* Embla viewport */}
       <div className="h-full px-1 sm:px-2" ref={emblaRef}>
         <div className="flex h-full gap-1 sm:gap-2">
@@ -138,6 +141,8 @@ function HeroCarousel() {
                 alt={s.title}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading={i === 0 ? "eager" : "lazy"}
+                decoding={i === 0 ? "sync" : "async"}
+                fetchPriority={i === 0 ? "high" : "low"}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
               <div className="absolute bottom-5 sm:bottom-8 left-4 sm:left-5 right-4 sm:right-5">
@@ -245,6 +250,17 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Group Photo Banner */}
+      <section className="w-full">
+        <img
+          src="/066.jpg"
+          alt="Urban Bird Collection"
+          className="w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </section>
+
       {/* Trending Now */}
       <section className="bg-gray-50 py-10 sm:py-16">
         <div className="container-custom">
@@ -254,8 +270,8 @@ export default function HomePage() {
               <p className="text-gray-500 font-manrope text-sm mt-1">Our most loved pieces this season</p>
             </div>
             <Link
-              to="/shop?sort=popular"
-              className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 items-center gap-1 hidden sm:flex"
+              to="/shop?sort=popularity"
+              className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 flex items-center gap-1"
             >
               View All <ArrowRight size={14} />
             </Link>
@@ -284,7 +300,7 @@ export default function HomePage() {
               Exclusive discounts on selected styles. While stocks last.
             </p>
           </div>
-          <Link to="/shop?filter=on_sale" className="flex-shrink-0">
+          <Link to="/shop?on_sale=true" className="flex-shrink-0">
             <Button
               variant="outline"
               size="lg"
@@ -306,7 +322,7 @@ export default function HomePage() {
             </div>
             <Link
               to="/shop?sort=latest"
-              className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 items-center gap-1 hidden sm:flex"
+              className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 flex items-center gap-1"
             >
               View All <ArrowRight size={14} />
             </Link>
@@ -327,7 +343,7 @@ export default function HomePage() {
               </div>
               <Link
                 to="/shop?on_sale=true"
-                className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 items-center gap-1 hidden sm:flex"
+                className="text-sm text-maroon-700 font-manrope font-medium hover:text-maroon-800 flex items-center gap-1"
               >
                 View All Deals <ArrowRight size={14} />
               </Link>
@@ -338,15 +354,16 @@ export default function HomePage() {
       )}
 
       {/* Newsletter with real background */}
-      <section
-        className="relative py-20 overflow-hidden"
-        style={{
-          backgroundImage:
-            "url('https://urbanbird.co.ke/wp-content/uploads/2024/07/bg-newletter.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
+      <section className="relative py-20 overflow-hidden">
+        {/* Lazy-loaded background image */}
+        <img
+          src="/slides/060.jpg"
+          alt=""
+          aria-hidden
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
         <div className="absolute inset-0 bg-black/60" />
         <div className="relative container-custom text-center max-w-xl mx-auto">
           <p className="text-maroon-300 font-manrope text-sm uppercase tracking-widest mb-3">

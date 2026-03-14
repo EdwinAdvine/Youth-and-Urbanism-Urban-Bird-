@@ -97,6 +97,7 @@ class CheckoutRequest(BaseModel):
 
 class OrderItemOut(BaseModel):
     id: uuid.UUID
+    variant_id: uuid.UUID | None = None
     product_name: str
     variant_sku: str
     size: str
@@ -147,6 +148,7 @@ class OrderOut(BaseModel):
     status_history: list[OrderStatusHistoryOut] = []
     customer_notes: str | None = None
     created_at: datetime
+    guest_token: str | None = None  # returned only for guest orders on checkout
 
     class Config:
         from_attributes = True

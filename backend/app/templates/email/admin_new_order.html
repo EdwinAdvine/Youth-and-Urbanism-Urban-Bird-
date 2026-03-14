@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}New Order Received — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>New Order Received 🛒</h2>
+<p>Hi {{ admin_name }}, a new order has just been placed on Urban Bird.</p>
+
+<div class="order-box">
+  <div class="order-row">
+    <span style="color:#6b7280">Order Number</span>
+    <strong>{{ order_number }}</strong>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Customer</span>
+    <strong>{{ customer_name }}</strong>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Email</span>
+    <span>{{ customer_email }}</span>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Items</span>
+    <span>{{ item_count }} item{{ 's' if item_count != 1 else '' }}</span>
+  </div>
+  <div class="order-row">
+    <span style="color:#6b7280">Total</span>
+    <strong style="color:#782121">{{ order_total }}</strong>
+  </div>
+</div>
+
+<p>Please process this order as soon as possible.</p>
+<center>
+  <a href="{{ order_admin_url }}" class="cta">View Order in Dashboard</a>
+</center>
+{% endblock %}

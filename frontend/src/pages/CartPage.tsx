@@ -3,8 +3,10 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "../store/cartStore";
 import { formatKSh } from "../utils/formatPrice";
 import Button from "../components/ui/Button";
+import { useSEO } from "../hooks/useSEO";
 
 export default function CartPage() {
+  useSEO({ title: "Your Cart", noindex: true });
   const { cart, updateItem, removeItem, clearCart, isLoading } = useCartStore();
   const items = cart?.items ?? [];
 

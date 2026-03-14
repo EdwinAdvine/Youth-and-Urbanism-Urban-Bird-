@@ -38,6 +38,12 @@ jinja2==3.1.4
 # SMS
 africastalking==1.2.6
 
+# Task scheduling
+apscheduler==3.10.4
+
+# Rate limiting
+slowapi==0.1.9
+
 # Observability
 python-json-logger==3.2.0
 

@@ -129,36 +129,99 @@ async def list_products(
 async def get_featured(db: AsyncSession = Depends(get_db), limit: int = Query(8)):
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.images))
+        .options(
+            selectinload(Product.images),
+            selectinload(Product.variants),
+            selectinload(Product.subcategory),
+            selectinload(Product.category),
+        )
         .where(Product.is_featured == True, Product.status == "active")
         .order_by(Product.created_at.desc())
         .limit(limit)
     )
-    return result.scalars().all()
+    products = result.scalars().all()
+    items = []
+    for p in products:
+        item = ProductListItem.model_validate(p)
+        item.primary_image = None
+        for img in p.images:
+            if img.is_primary:
+                item.primary_image = img
+                break
+        if not item.primary_image and p.images:
+            item.primary_image = p.images[0]
+        if p.category:
+            item.category_slug = p.category.slug
+        if p.subcategory:
+            item.subcategory_slug = p.subcategory.slug
+        items.append(item)
+    return items
 
 
 @router.get("/new-arrivals", response_model=list[ProductListItem])
 async def get_new_arrivals(db: AsyncSession = Depends(get_db), limit: int = Query(8)):
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.images))
+        .options(
+            selectinload(Product.images),
+            selectinload(Product.variants),
+            selectinload(Product.subcategory),
+            selectinload(Product.category),
+        )
         .where(Product.is_new_arrival == True, Product.status == "active")
         .order_by(Product.created_at.desc())
         .limit(limit)
     )
-    return result.scalars().all()
+    products = result.scalars().all()
+    items = []
+    for p in products:
+        item = ProductListItem.model_validate(p)
+        item.primary_image = None
+        for img in p.images:
+            if img.is_primary:
+                item.primary_image = img
+                break
+        if not item.primary_image and p.images:
+            item.primary_image = p.images[0]
+        if p.category:
+            item.category_slug = p.category.slug
+        if p.subcategory:
+            item.subcategory_slug = p.subcategory.slug
+        items.append(item)
+    return items
 
 
 @router.get("/on-sale", response_model=list[ProductListItem])
 async def get_on_sale(db: AsyncSession = Depends(get_db), limit: int = Query(8)):
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.images))
+        .options(
+            selectinload(Product.images),
+            selectinload(Product.variants),
+            selectinload(Product.subcategory),
+            selectinload(Product.category),
+        )
         .where(Product.is_on_sale == True, Product.status == "active")
         .order_by(Product.created_at.desc())
         .limit(limit)
     )
-    return result.scalars().all()
+    products = result.scalars().all()
+    items = []
+    for p in products:
+        item = ProductListItem.model_validate(p)
+        item.primary_image = None
+        for img in p.images:
+            if img.is_primary:
+                item.primary_image = img
+                break
+        if not item.primary_image and p.images:
+            item.primary_image = p.images[0]
+        if p.category:
+            item.category_slug = p.category.slug
+        if p.subcategory:
+            item.subcategory_slug = p.subcategory.slug
+        items.append(item)
+    return items
 
 
 @router.get("/{slug}", response_model=ProductDetail)
@@ -245,7 +308,7 @@ async def create_review(
         title=data.title,
         body=data.body,
         images=data.images,
-        is_approved=True,  # Auto-approve; can add moderation later
+        is_approved=False,  # Requires admin moderation before appearing publicly
     )
     db.add(review)
     await db.flush()

@@ -5,8 +5,10 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Logo from "../../components/header/Logo";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function ForgotPasswordPage() {
+  useSEO({ title: "Forgot Password", noindex: true });
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);

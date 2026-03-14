@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Return Request Update — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>Update on your return request</h2>
+<p>Hi {{ first_name }},</p>
+<p>We've reviewed your return request for order <strong>{{ order_number }}</strong> and unfortunately we are unable to approve it at this time.</p>
+
+<div class="order-box">
+  <div class="order-row"><span>Order</span><span>{{ order_number }}</span></div>
+  <div class="order-row"><span>Status</span><span style="color:#dc2626;font-weight:600;">Not Approved</span></div>
+</div>
+
+{% if admin_note %}
+<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0;">
+  <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#991b1b;">Reason</p>
+  <p style="margin:0;font-size:14px;color:#374151;">{{ admin_note }}</p>
+</div>
+{% endif %}
+
+<p>If you believe this decision was made in error or you have additional information to share, please don't hesitate to contact us — we're happy to look into it again.</p>
+
+<center>
+  <a href="mailto:hello@urbanbird.co.ke" class="cta">Contact Support</a>
+</center>
+
+<p style="color:#6b7280;font-size:13px;margin-top:24px;">
+  We value your business and want to make sure every experience with Urban Bird is a great one.
+</p>
+{% endblock %}

@@ -55,7 +55,7 @@ class Product(Base):
     slug: Mapped[str] = mapped_column(String(300), unique=True, nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     short_description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    category_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True)
+    category_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
     subcategory_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subcategories.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Pricing
@@ -122,6 +122,7 @@ class ProductVariant(Base):
     color_hex: Mapped[str] = mapped_column(String(7), nullable=False, default="#000000")
     price_adjustment: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("0.00"))
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reserved_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     barcode: Mapped[str | None] = mapped_column(String(50), nullable=True)
     weight_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)

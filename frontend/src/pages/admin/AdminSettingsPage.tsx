@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 const SECTIONS = [
   { id: "identity",      label: "Store Identity",    icon: Store },
@@ -16,7 +17,11 @@ const SECTIONS = [
   { id: "inventory",     label: "Inventory Alerts",  icon: AlertCircle },
 ];
 
-// Masked input with show/hide toggle
+const MASKED = "__masked__";
+
+// Masked input with show/hide toggle.
+// When value === MASKED the field shows a placeholder indicating the key is already saved.
+// Typing a new value replaces it; clearing the field keeps the mask.
 function SecretField({
   label, value, onChange, placeholder, hint,
 }: {
@@ -27,26 +32,33 @@ function SecretField({
   hint?: string;
 }) {
   const [show, setShow] = useState(false);
+  const isMasked = value === MASKED;
   return (
     <div>
       <label className="block text-xs font-manrope text-gray-500 mb-1.5">{label}</label>
       <div className="relative">
         <input
           type={show ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          value={isMasked ? "" : value}
+          onChange={(e) => onChange(e.target.value || MASKED)}
+          placeholder={isMasked ? "Saved — enter a new value to change" : placeholder}
           className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 pr-10 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700"
         />
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          tabIndex={-1}
         >
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       </div>
-      {hint && <p className="text-xs text-gray-400 font-manrope mt-1">{hint}</p>}
+      {isMasked && (
+        <p className="text-xs text-emerald-600 font-manrope mt-1 flex items-center gap-1">
+          <span>●</span> Saved securely
+        </p>
+      )}
+      {!isMasked && hint && <p className="text-xs text-gray-400 font-manrope mt-1">{hint}</p>}
     </div>
   );
 }
@@ -90,6 +102,7 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
 }
 
 export default function AdminSettingsPage() {
+  useSEO({ title: "Settings", noindex: true });
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("identity");
@@ -152,6 +165,7 @@ export default function AdminSettingsPage() {
       .get("/api/v1/admin/settings")
       .then((r) => {
         const s = r.data;
+        // NOTE: secret fields arrive as "__masked__" if already saved, or "" if blank.
 
         // Identity
         setStoreName(s.store_name ?? "Urban Bird");
@@ -212,9 +226,14 @@ export default function AdminSettingsPage() {
         // Inventory
         setLowStockThreshold(s.low_stock_threshold ?? 10);
       })
-      .catch(() => {})
+      .catch(() => toast.error("Failed to load settings"))
       .finally(() => setIsLoading(false));
   }, []);
+
+  // Strip keys whose value is still the server-side mask sentinel —
+  // the backend will ignore them anyway, but omitting them reduces noise.
+  const omitMasked = (obj: Record<string, any>) =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== MASKED));
 
   const handleSave = async () => {
     setSaving(true);
@@ -238,7 +257,7 @@ export default function AdminSettingsPage() {
       } else if (activeSection === "announcements") {
         payload = { announcement_messages: announcementMessages.filter((m) => m.text.trim()) };
       } else if (activeSection === "payments") {
-        payload = {
+        payload = omitMasked({
           paystack_public_key: paystackPublicKey,
           paystack_secret_key: paystackSecretKey,
           paystack_webhook_secret: paystackWebhookSecret,
@@ -251,18 +270,18 @@ export default function AdminSettingsPage() {
           stripe_publishable_key: stripePublishableKey,
           stripe_secret_key: stripeSecretKey,
           stripe_webhook_secret: stripeWebhookSecret,
-        };
+        });
       } else if (activeSection === "email") {
-        payload = {
+        payload = omitMasked({
           smtp_host: smtpHost,
           smtp_port: parseInt(smtpPort) || 587,
           smtp_user: smtpUser,
           smtp_password: smtpPassword,
           from_email: fromEmail,
           from_name: fromName,
-        };
+        });
       } else if (activeSection === "sms") {
-        payload = { at_username: atUsername, at_api_key: atApiKey, at_sender_id: atSenderId };
+        payload = omitMasked({ at_username: atUsername, at_api_key: atApiKey, at_sender_id: atSenderId });
       } else if (activeSection === "inventory") {
         payload = { low_stock_threshold: lowStockThreshold };
       }

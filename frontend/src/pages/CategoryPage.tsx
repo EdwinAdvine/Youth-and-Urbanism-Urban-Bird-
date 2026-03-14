@@ -7,6 +7,7 @@ import ProductGrid from "../components/product/ProductGrid";
 import ShopSidebar from "../components/product/ShopSidebar";
 import Button from "../components/ui/Button";
 import { ChevronRight, Clock, SlidersHorizontal } from "lucide-react";
+import { useSEO } from "../hooks/useSEO";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -33,6 +34,25 @@ export default function CategoryPage() {
   }, [slug, searchParams.toString()]);
 
   const activeSub = searchParams.get("sub");
+
+  useSEO({
+    title: category ? `${category.name} Collection` : undefined,
+    description: category
+      ? `Shop the latest ${category.name.toLowerCase()} collection from Urban Bird. Premium urban streetwear — hoodies, sweatpants, jackets & accessories delivered across Kenya.`
+      : undefined,
+    image: category?.banner_url,
+    url: `https://urbanbird.co.ke/category/${slug}`,
+    jsonLd: category
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://urbanbird.co.ke/" },
+            { "@type": "ListItem", position: 2, name: category.name, item: `https://urbanbird.co.ke/category/${slug}` },
+          ],
+        }
+      : null,
+  });
 
   return (
     <div>

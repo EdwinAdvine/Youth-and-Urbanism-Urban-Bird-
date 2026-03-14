@@ -5,8 +5,10 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Logo from "../../components/header/Logo";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function ResetPasswordPage() {
+  useSEO({ title: "Reset Password", noindex: true });
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");

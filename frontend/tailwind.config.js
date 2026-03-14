@@ -19,6 +19,8 @@ export default {
         },
       },
       fontFamily: {
+        lexend: ['"Lexend Deca"', "sans-serif"],
+        manrope: ['"Manrope"', "sans-serif"],
         heading: ['"Lexend Deca"', "sans-serif"],
         body: ['"Manrope"', "sans-serif"],
       },

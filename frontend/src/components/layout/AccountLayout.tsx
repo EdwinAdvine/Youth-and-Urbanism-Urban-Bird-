@@ -1,19 +1,22 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
-import { User, Package, MapPin, Settings, ChevronRight } from "lucide-react";
+import { User, Package, MapPin, Settings, ChevronRight, Bell } from "lucide-react";
 import Header from "../header/Header";
 import Footer from "../footer/Footer";
 import { useAuthStore } from "../../store/authStore";
+import { useNotificationStore } from "../../store/notificationStore";
 
 const navItems = [
   { to: "/account", icon: User, label: "Dashboard", exact: true },
   { to: "/account/orders", icon: Package, label: "My Orders" },
   { to: "/account/addresses", icon: MapPin, label: "Addresses" },
+  { to: "/account/notifications", icon: Bell, label: "Notifications" },
   { to: "/account/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function AccountLayout() {
   const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   if (user && ["admin", "super_admin"].includes(user.role)) {
     return <Navigate to="/admin" replace />;
@@ -56,7 +59,12 @@ export default function AccountLayout() {
                     >
                       <Icon size={17} />
                       {label}
-                      {isActive && <ChevronRight size={15} className="ml-auto" />}
+                      {to === "/account/notifications" && unreadCount > 0 && (
+                        <span className="ml-auto bg-maroon-700 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center leading-none font-manrope">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                      {isActive && to !== "/account/notifications" && <ChevronRight size={15} className="ml-auto" />}
                     </Link>
                   );
                 })}

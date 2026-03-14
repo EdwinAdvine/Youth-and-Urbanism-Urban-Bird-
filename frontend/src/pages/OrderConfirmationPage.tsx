@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { CheckCircle, Package, ArrowRight, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, Loader2, XCircle, RefreshCw } from "lucide-react";
 import { useOrderStore } from "../store/orderStore";
 import { orderService } from "../services/orderService";
 import { formatKSh, formatDate } from "../utils/formatPrice";
 import Button from "../components/ui/Button";
 import toast from "react-hot-toast";
+import { useSEO } from "../hooks/useSEO";
 
 type VerifyStatus = "idle" | "verifying" | "success" | "failed";
 
 export default function OrderConfirmationPage() {
+  useSEO({ title: "Order Confirmed", noindex: true });
   const { orderId } = useParams<{ orderId: string }>();
   const [searchParams] = useSearchParams();
   const { currentOrder, fetchOrder, isLoading } = useOrderStore();
@@ -17,6 +19,7 @@ export default function OrderConfirmationPage() {
   const paystackRef = searchParams.get("reference") || searchParams.get("trxref");
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>(paystackRef ? "verifying" : "idle");
   const [verifyMessage, setVerifyMessage] = useState("");
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     if (orderId) fetchOrder(orderId);
@@ -49,6 +52,18 @@ export default function OrderConfirmationPage() {
     verify();
   }, [paystackRef]);
 
+  const handleRetryPaystack = async () => {
+    if (!currentOrder) return;
+    setIsRetrying(true);
+    try {
+      const result = await orderService.retryPaystack(currentOrder.order_number);
+      window.location.href = result.authorization_url;
+    } catch {
+      toast.error("Could not reinitialize payment. Please try again.");
+      setIsRetrying(false);
+    }
+  };
+
   if (isLoading && !currentOrder) {
     return <div className="container-custom py-20 text-center text-gray-500 font-manrope">Loading…</div>;
   }
@@ -70,9 +85,22 @@ export default function OrderConfirmationPage() {
         </div>
       )}
       {verifyStatus === "failed" && (
-        <div className="flex items-center justify-center gap-3 mb-8 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <XCircle size={20} className="text-red-500" />
-          <p className="text-sm font-manrope text-red-600">{verifyMessage}</p>
+        <div className="flex flex-col items-center gap-3 mb-8 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="flex items-center gap-3">
+            <XCircle size={20} className="text-red-500" />
+            <p className="text-sm font-manrope text-red-600">{verifyMessage}</p>
+          </div>
+          {currentOrder?.payment_method === "paystack" && (
+            <Button
+              size="sm"
+              variant="outline"
+              isLoading={isRetrying}
+              onClick={handleRetryPaystack}
+              className="flex items-center gap-2 text-maroon-700 border-maroon-700 hover:bg-maroon-50"
+            >
+              <RefreshCw size={14} /> Retry Payment
+            </Button>
+          )}
         </div>
       )}
 
@@ -119,11 +147,19 @@ export default function OrderConfirmationPage() {
             )}
 
             {/* Paystack pending (no reference yet) */}
-            {currentOrder.payment_method === "paystack" && verifyStatus === "idle" && (
+            {currentOrder.payment_method === "paystack" && verifyStatus === "idle" && currentOrder.payment_status !== "paid" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-start justify-between gap-4">
-                <p className="text-sm font-manrope text-blue-700">
+                <p className="text-sm font-manrope text-blue-700 flex-1">
                   Payment pending — if you were redirected back without completing payment, you can retry below.
                 </p>
+                <Button
+                  size="sm"
+                  isLoading={isRetrying}
+                  onClick={handleRetryPaystack}
+                  className="flex-shrink-0 flex items-center gap-2"
+                >
+                  <RefreshCw size={14} /> Pay Now
+                </Button>
               </div>
             )}
 

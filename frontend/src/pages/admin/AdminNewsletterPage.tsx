@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Mail, Download, Trash2, Users } from "lucide-react";
+import { Mail, Download, Trash2, Users, Send } from "lucide-react";
 import api from "../../services/api";
 import { formatDate } from "../../utils/formatPrice";
 import Badge from "../../components/ui/Badge";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminNewsletterPage() {
+  useSEO({ title: "Newsletter", noindex: true });
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
@@ -14,17 +16,22 @@ export default function AdminNewsletterPage() {
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
 
+  // Campaign state
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
   const load = () => {
     setIsLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "25" });
     if (search) params.set("q", search);
     api.get(`/api/v1/newsletter/admin/subscribers?${params}`)
       .then((r) => {
-        setSubscribers(r.data.items ?? r.data);
-        setTotal(r.data.total ?? r.data.length);
+        setSubscribers(r.data.items ?? []);
+        setTotal(r.data.total ?? 0);
         setActiveCount(r.data.active_count ?? 0);
       })
-      .catch(() => {})
+      .catch(() => toast.error("Failed to load subscribers"))
       .finally(() => setIsLoading(false));
   };
 
@@ -55,6 +62,23 @@ export default function AdminNewsletterPage() {
       load();
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to remove subscriber");
+    }
+  };
+
+  const handleSend = async () => {
+    if (!subject.trim()) { toast.error("Subject is required"); return; }
+    if (!body.trim()) { toast.error("Message body is required"); return; }
+    if (!confirm(`Send this campaign to all ${activeCount} active subscriber(s)?`)) return;
+    setSending(true);
+    try {
+      const r = await api.post("/api/v1/newsletter/admin/send", { subject, body });
+      toast.success(r.data.message || "Campaign sent!");
+      setSubject("");
+      setBody("");
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to send campaign");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -93,6 +117,47 @@ export default function AdminNewsletterPage() {
         </div>
       </div>
 
+      {/* Send Campaign */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
+        <h2 className="text-base font-semibold font-lexend text-gray-900 mb-4">Send Campaign</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-manrope font-medium text-gray-600 mb-1">Subject</label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="e.g. New arrivals just dropped 🔥"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-manrope font-medium text-gray-600 mb-1">
+              Message <span className="text-gray-400">(HTML supported)</span>
+            </label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={6}
+              placeholder="Write your newsletter content here. You can use basic HTML like <b>bold</b>, <a href='...'>links</a>, <br> for line breaks, etc."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700 resize-y"
+            />
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-xs text-gray-400 font-manrope">
+              Will be sent to <strong>{activeCount}</strong> active subscriber{activeCount !== 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={handleSend}
+              disabled={sending || activeCount === 0}
+              className="flex items-center gap-2 bg-maroon-700 hover:bg-maroon-800 disabled:opacity-50 text-white text-sm font-manrope font-medium rounded-lg px-5 py-2.5"
+            >
+              <Send size={14} />
+              {sending ? "Sending…" : "Send Campaign"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Search */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
         <input
@@ -121,13 +186,13 @@ export default function AdminNewsletterPage() {
               : subscribers.map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-manrope text-gray-900">{s.email}</td>
-                    <td className="px-4 py-3 font-manrope text-gray-600">{s.first_name ?? "—"}</td>
+                    <td className="px-4 py-3 font-manrope text-gray-600">{s.name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <Badge variant={s.is_active ? "success" : "danger"} size="sm">
                         {s.is_active ? "Active" : "Unsubscribed"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 font-manrope text-xs">{formatDate(s.subscribed_at ?? s.created_at)}</td>
+                    <td className="px-4 py-3 text-gray-500 font-manrope text-xs">{formatDate(s.created_at)}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleDelete(s.id, s.email)}

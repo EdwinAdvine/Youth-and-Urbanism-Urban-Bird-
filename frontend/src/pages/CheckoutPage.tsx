@@ -12,6 +12,7 @@ import { KENYAN_COUNTIES } from "../utils/constants";
 import api from "../services/api";
 import { orderService } from "../services/orderService";
 import toast from "react-hot-toast";
+import { useSEO } from "../hooks/useSEO";
 
 const STEPS: { key: CheckoutStep; label: string }[] = [
   { key: "shipping", label: "Shipping" },
@@ -20,6 +21,7 @@ const STEPS: { key: CheckoutStep; label: string }[] = [
 ];
 
 export default function CheckoutPage() {
+  useSEO({ title: "Checkout", noindex: true });
   const navigate = useNavigate();
   const { cart } = useCartStore();
   const user = useAuthStore((s) => s.user);
@@ -81,11 +83,8 @@ export default function CheckoutPage() {
         guest_email: user ? undefined : guestEmail || undefined,
       };
       const order = await orderService.checkout(payload);
-
-      // Persist guest email so the confirmation page can verify order ownership
-      if (!user && guestEmail) {
-        sessionStorage.setItem("ub_guest_email", guestEmail);
-      }
+      // Guest credentials (email + token) are persisted in sessionStorage
+      // automatically by orderService.checkout for guest orders.
 
       if (paymentMethod === "paystack") {
         // Initialize Paystack and redirect to their hosted checkout page

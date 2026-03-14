@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /account/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /order-confirmation/
+Disallow: /wishlist
+Disallow: /compare
+Allow: /
+
+Sitemap: https://urbanbird.co.ke/sitemap.xml

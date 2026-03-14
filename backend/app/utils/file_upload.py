@@ -43,11 +43,11 @@ async def save_product_image(file: UploadFile, product_id: str) -> dict[str, str
     original_path = product_dir / f"{filename}.webp"
     original.save(str(original_path), "WEBP", quality=85)
 
-    # Save thumbnail (300x300)
+    # Save thumbnail (400x400 — sharp on retina at standard card sizes)
     thumb = img.copy()
-    thumb.thumbnail((300, 300), Image.LANCZOS)
+    thumb.thumbnail((400, 400), Image.LANCZOS)
     thumb_path = product_dir / f"{filename}_thumb.webp"
-    thumb.save(str(thumb_path), "WEBP", quality=80)
+    thumb.save(str(thumb_path), "WEBP", quality=82)
 
     base_url = f"/uploads/products/{product_id}"
     return {

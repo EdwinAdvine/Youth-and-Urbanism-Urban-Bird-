@@ -5,6 +5,7 @@ import api from "../../services/api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import toast from "react-hot-toast";
+import { useSEO } from "../../hooks/useSEO";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 const DEFAULT_COLORS = [
@@ -16,6 +17,7 @@ const DEFAULT_COLORS = [
 ];
 
 export default function AdminProductFormPage() {
+  useSEO({ title: "Product", noindex: true });
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSEO } from "../../hooks/useSEO";
 
 interface DeliveryOverview {
   pending_dispatch: number;
@@ -20,6 +21,7 @@ interface DeliveryOrder {
 }
 
 export default function AdminDeliveryPage() {
+  useSEO({ title: "Delivery", noindex: true });
   const [overview, setOverview] = useState<DeliveryOverview>({ pending_dispatch: 0, in_transit: 0, delivered_today: 0 });
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);

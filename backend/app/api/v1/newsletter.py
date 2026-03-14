@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.newsletter import NewsletterSubscriber
 from app.api.deps import get_admin_user
 from app.models.user import User
+from app.services.email_service import send_newsletter_campaign
 
 router = APIRouter()
 
@@ -71,13 +72,13 @@ async def list_subscribers(
     admin: User = Depends(get_admin_user),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
-    search: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
 ):
     query = select(NewsletterSubscriber).order_by(NewsletterSubscriber.created_at.desc())
-    if search:
+    if q:
         query = query.where(
-            NewsletterSubscriber.email.ilike(f"%{search}%") |
-            NewsletterSubscriber.name.ilike(f"%{search}%")
+            NewsletterSubscriber.email.ilike(f"%{q}%") |
+            NewsletterSubscriber.name.ilike(f"%{q}%")
         )
     result = await db.execute(query.offset((page - 1) * limit).limit(limit))
     subs = result.scalars().all()
@@ -89,8 +90,8 @@ async def list_subscribers(
 
     return {
         "total": total_result.scalar_one(),
-        "active": active_result.scalar_one(),
-        "subscribers": [
+        "active_count": active_result.scalar_one(),
+        "items": [
             {
                 "id": str(s.id),
                 "email": s.email,
@@ -145,3 +146,45 @@ async def delete_subscriber(
     if not sub:
         raise HTTPException(status_code=404, detail="Subscriber not found")
     await db.delete(sub)
+
+
+class SendCampaignRequest(BaseModel):
+    subject: str
+    body: str  # Plain text body; email service wraps it in the branded template
+
+
+@router.post("/admin/send")
+async def send_campaign(
+    data: SendCampaignRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    result = await db.execute(
+        select(NewsletterSubscriber)
+        .where(NewsletterSubscriber.is_active == True)
+        .order_by(NewsletterSubscriber.created_at)
+    )
+    subscribers = result.scalars().all()
+
+    if not subscribers:
+        return {"sent": 0, "failed": 0, "message": "No active subscribers found."}
+
+    sent = 0
+    failed = 0
+    for sub in subscribers:
+        ok = await send_newsletter_campaign(
+            to_email=sub.email,
+            name=sub.name,
+            subject=data.subject,
+            body=data.body,
+        )
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+
+    return {
+        "sent": sent,
+        "failed": failed,
+        "message": f"Campaign sent to {sent} subscriber(s)." + (f" {failed} failed." if failed else ""),
+    }

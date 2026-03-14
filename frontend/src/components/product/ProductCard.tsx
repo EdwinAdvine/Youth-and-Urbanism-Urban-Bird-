@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Heart, ShoppingBag, Eye, ArrowRightLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Heart, ShoppingBag, Eye, ArrowRightLeft, Pencil } from "lucide-react";
 import type { Product } from "../../types";
 import { formatKSh } from "../../utils/formatPrice";
 import { useWishlistStore } from "../../store/wishlistStore";
 import { useCartStore } from "../../store/cartStore";
 import { useUIStore } from "../../store/uiStore";
 import { useCompareStore } from "../../store/compareStore";
+import { useAuthStore } from "../../store/authStore";
 import { cn } from "../../utils/cn";
 import toast from "react-hot-toast";
 
@@ -21,6 +22,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { addItem, isLoading: cartLoading } = useCartStore();
   const { openQuickView } = useUIStore();
   const { toggleProduct, isInCompare } = useCompareStore();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const navigate = useNavigate();
 
   const inWishlist = isInWishlist(product.id);
   const inCompare = isInCompare(product.id);
@@ -65,6 +69,12 @@ export default function ProductCard({ product }: ProductCardProps) {
     toggleProduct(product);
   };
 
+  const handleAdminEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/admin/products/${product.id}/edit`);
+  };
+
   return (
     <div
       className="group relative flex flex-col"
@@ -75,12 +85,33 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Image */}
         <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
           {primaryImage ? (
-            <img
-              src={isHovered && hoverImage ? hoverImage : primaryImage}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
+            <>
+              {/* Primary image — scales + fades out if a hover image is present */}
+              <img
+                src={primaryImage}
+                alt={product.name}
+                loading="lazy"
+                decoding="async"
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+                  hoverImage
+                    ? isHovered ? "opacity-0 scale-105" : "opacity-100 scale-100"
+                    : isHovered ? "scale-105" : "scale-100"
+                }`}
+              />
+              {/* Hover image — always in DOM so browser preloads it; fades in on hover */}
+              {hoverImage && (
+                <img
+                  src={hoverImage}
+                  alt=""
+                  aria-hidden
+                  loading="lazy"
+                  decoding="async"
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+                    isHovered ? "opacity-100 scale-105" : "opacity-0 scale-100"
+                  }`}
+                />
+              )}
+            </>
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
               <ShoppingBag size={32} className="text-gray-400" />
@@ -141,6 +172,15 @@ export default function ProductCard({ product }: ProductCardProps) {
             >
               <ArrowRightLeft size={15} />
             </button>
+            {isAdmin && (
+              <button
+                onClick={handleAdminEdit}
+                className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-gray-600 hover:text-maroon-700 transition-colors"
+                title="Edit product (admin)"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
           </div>
 
           {/* Add to cart button — always visible on mobile */}

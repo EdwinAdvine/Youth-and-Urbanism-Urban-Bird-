@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { setAccessToken, clearAccessToken } from "./api";
 import type { LoginRequest, RegisterRequest, TokenResponse } from "../types";
 
 const BASE = "/api/v1/auth";
@@ -6,19 +6,26 @@ const BASE = "/api/v1/auth";
 export const authService = {
   async login(data: LoginRequest): Promise<TokenResponse> {
     const res = await api.post<TokenResponse>(`${BASE}/login`, data);
-    localStorage.setItem("ub_access_token", res.data.access_token);
+    setAccessToken(res.data.access_token);
     return res.data;
   },
 
   async register(data: RegisterRequest): Promise<TokenResponse> {
     const res = await api.post<TokenResponse>(`${BASE}/register`, data);
-    localStorage.setItem("ub_access_token", res.data.access_token);
+    setAccessToken(res.data.access_token);
     return res.data;
   },
 
   async logout(): Promise<void> {
+    clearAccessToken();
+    sessionStorage.removeItem("ub_guest_email");
+    sessionStorage.removeItem("ub_guest_token");
     await api.post(`${BASE}/logout`).catch(() => {});
-    localStorage.removeItem("ub_access_token");
+  },
+
+  async refresh(): Promise<{ access_token: string }> {
+    const res = await api.post<{ access_token: string }>(`${BASE}/refresh`);
+    return res.data;
   },
 
   async forgotPassword(email: string): Promise<void> {

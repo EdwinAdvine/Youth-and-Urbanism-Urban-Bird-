@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -18,9 +18,12 @@ import {
   Settings,
   Image,
   Mail,
+  Bell,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
+import { useNotificationStore } from "../../store/notificationStore";
 import Logo from "../header/Logo";
+import api from "../../services/api";
 
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
@@ -35,6 +38,7 @@ const navItems = [
   { to: "/admin/returns", icon: RotateCcw, label: "Returns" },
   { to: "/admin/newsletter", icon: Mail, label: "Newsletter" },
   { to: "/admin/banners", icon: Image, label: "Banners" },
+  { to: "/admin/notifications", icon: Bell, label: "Notifications" },
 ];
 
 const superAdminItems = [
@@ -46,9 +50,24 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
+  const adminUnreadCount = useNotificationStore((s) => s.adminUnreadCount);
 
   const isSuperAdmin = user?.role === "super_admin";
+
+  // Verify admin role against live backend on every layout mount
+  useEffect(() => {
+    api.get("/api/v1/users/me").then((res) => {
+      const liveUser = res.data;
+      if (!liveUser || !["admin", "super_admin"].includes(liveUser.role)) {
+        logout().then(() => navigate("/admin/login", { replace: true }));
+      } else {
+        setUser(liveUser);
+      }
+    }).catch(() => {
+      logout().then(() => navigate("/admin/login", { replace: true }));
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = async () => {
     await logout();
@@ -69,7 +88,12 @@ export default function AdminLayout() {
       >
         <Icon size={17} />
         {label}
-        {isActive && <ChevronRight size={14} className="ml-auto" />}
+        {to === "/admin/notifications" && adminUnreadCount > 0 && (
+          <span className="ml-auto bg-white text-maroon-700 text-xs w-4 h-4 rounded-full flex items-center justify-center leading-none font-manrope font-bold">
+            {adminUnreadCount > 9 ? "9+" : adminUnreadCount}
+          </span>
+        )}
+        {isActive && to !== "/admin/notifications" && <ChevronRight size={14} className="ml-auto" />}
       </Link>
     );
   };

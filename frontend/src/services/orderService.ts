@@ -26,6 +26,11 @@ export interface MpesaInitiateResponse {
 export const orderService = {
   async checkout(data: CheckoutRequest): Promise<Order> {
     const res = await api.post<Order>(`${BASE}/checkout`, data);
+    // Store guest credentials in sessionStorage for later order lookup
+    if (!res.data.user_id && res.data.guest_token) {
+      sessionStorage.setItem("ub_guest_email", data.guest_email || "");
+      sessionStorage.setItem("ub_guest_token", res.data.guest_token);
+    }
     return res.data;
   },
 
@@ -36,8 +41,13 @@ export const orderService = {
 
   async getOrder(orderNumber: string): Promise<Order> {
     const guestEmail = sessionStorage.getItem("ub_guest_email");
-    const params = guestEmail ? { guest_email: guestEmail } : undefined;
-    const res = await api.get<Order>(`${BASE}/${orderNumber}`, { params });
+    const guestToken = sessionStorage.getItem("ub_guest_token");
+    const params: Record<string, string> = {};
+    if (guestEmail) params.guest_email = guestEmail;
+    if (guestToken) params.guest_token = guestToken;
+    const res = await api.get<Order>(`${BASE}/${orderNumber}`, {
+      params: Object.keys(params).length ? params : undefined,
+    });
     return res.data;
   },
 
@@ -60,6 +70,11 @@ export const orderService = {
 
   async initializePaystack(orderId: string): Promise<{ authorization_url: string; reference: string; access_code: string }> {
     const res = await api.post("/api/v1/payments/paystack/initialize", { order_id: orderId });
+    return res.data;
+  },
+
+  async retryPaystack(orderNumber: string): Promise<{ authorization_url: string; reference: string; access_code: string }> {
+    const res = await api.post(`/api/v1/payments/paystack/retry/${orderNumber}`);
     return res.data;
   },
 

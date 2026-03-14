@@ -5,8 +5,10 @@ import api from "../../services/api";
 import { formatKSh, formatDate } from "../../utils/formatPrice";
 import Badge from "../../components/ui/Badge";
 import { ORDER_STATUSES } from "../../utils/constants";
+import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminOrdersPage() {
+  useSEO({ title: "Orders", noindex: true });
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");

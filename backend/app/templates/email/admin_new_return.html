@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}New Return Request — {{ order_number }}{% endblock %}
+{% block content %}
+<h2>New Return Request Received</h2>
+<p>Hi {{ admin_name }},</p>
+<p>A customer has submitted a return request and needs your attention.</p>
+
+<div class="order-box">
+  <div class="order-row"><span>Order</span><span>{{ order_number }}</span></div>
+  <div class="order-row"><span>Customer</span><span>{{ customer_name }}</span></div>
+  <div class="order-row"><span>Email</span><span>{{ customer_email }}</span></div>
+  <div class="order-row"><span>Reason</span><span style="text-transform:capitalize;">{{ reason_label }}</span></div>
+  {% if customer_note %}
+  <div class="order-row"><span>Note</span><span>{{ customer_note }}</span></div>
+  {% endif %}
+</div>
+
+<center>
+  <a href="{{ return_admin_url }}" class="cta">Review Return Request</a>
+</center>
+{% endblock %}

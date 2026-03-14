@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useSEO } from "../../hooks/useSEO";
 
 interface Customer {
   id: number;
@@ -14,6 +15,7 @@ interface Customer {
 }
 
 export default function AdminCustomersPage() {
+  useSEO({ title: "Customers", noindex: true });
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -24,7 +26,7 @@ export default function AdminCustomersPage() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/v1/admin/customers');
+      const res = await api.get('/api/v1/admin/customers', { params: { limit: 1000 } });
       setCustomers(res.data?.data ?? res.data ?? []);
     } catch {
       toast.error('Failed to load customers');
