@@ -37,6 +37,7 @@ async def get_shipping_rates(
 
     rates = [
         {
+            "id": str(rate.id),
             "method": rate.method,
             "price": float(rate.price),
             "free_above": float(rate.free_above) if rate.free_above else None,

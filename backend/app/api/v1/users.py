@@ -86,6 +86,29 @@ async def update_address(
     return address
 
 
+@router.post("/me/addresses/{address_id}/set-default")
+async def set_default_address(
+    address_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(UserAddress).where(UserAddress.id == address_id, UserAddress.user_id == current_user.id)
+    )
+    address = result.scalar_one_or_none()
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    # Unset all defaults for this user
+    await db.execute(
+        UserAddress.__table__.update()
+        .where(UserAddress.user_id == current_user.id)
+        .values(is_default=False)
+    )
+    address.is_default = True
+    return {"message": "Default address updated"}
+
+
 @router.delete("/me/addresses/{address_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_address(
     address_id: uuid.UUID,

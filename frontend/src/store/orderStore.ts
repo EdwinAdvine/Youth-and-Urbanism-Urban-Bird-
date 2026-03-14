@@ -49,16 +49,16 @@ export const useOrderStore = create<OrderState>()((set) => ({
     }
   },
 
-  cancelOrder: async (id) => {
+  cancelOrder: async (orderNumber) => {
     try {
-      await orderService.cancelOrder(id);
+      await orderService.cancelOrder(orderNumber);
       // Update the orders list and currentOrder
       set((s) => ({
         orders: s.orders.map((o) =>
-          o.id === id ? { ...o, status: "cancelled" } : o
+          o.order_number === orderNumber ? { ...o, status: "cancelled" } : o
         ),
         currentOrder:
-          s.currentOrder?.id === id
+          s.currentOrder?.order_number === orderNumber
             ? { ...s.currentOrder, status: "cancelled" }
             : s.currentOrder,
       }));

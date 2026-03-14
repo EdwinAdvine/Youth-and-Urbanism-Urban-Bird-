@@ -5,7 +5,7 @@ interface LogoProps {
   className?: string;
 }
 
-const LOGO_URL = "https://urbanbird.co.ke/wp-content/uploads/2025/11/Untitled-1.png";
+const LOGO_URL = "/Urban Bird Logo Original.png";
 
 export default function Logo({ variant = "dark", className = "" }: LogoProps) {
   return (

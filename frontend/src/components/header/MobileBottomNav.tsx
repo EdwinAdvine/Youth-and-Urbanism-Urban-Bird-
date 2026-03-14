@@ -18,8 +18,8 @@ export default function MobileBottomNav() {
   const wishlistCount = useWishlistStore((s) => s.productIds.length);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 lg:hidden safe-area-inset-bottom">
-      <div className="flex items-center">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex items-center h-14">
         {navItems.map(({ to, icon: Icon, label }) => {
           const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
           const count =

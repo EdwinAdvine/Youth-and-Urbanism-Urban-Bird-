@@ -25,7 +25,7 @@ export default function OrderDetailPage() {
   const handleCancel = async () => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
     try {
-      await cancelOrder(o.id);
+      await cancelOrder(o.order_number);
       toast.success("Order cancelled.");
     } catch {
       toast.error("Could not cancel order.");
@@ -64,13 +64,13 @@ export default function OrderDetailPage() {
           <div className="divide-y divide-gray-50">
             {o.items?.map((item) => (
               <div key={item.id} className="flex gap-4 p-4">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.product_name} className="w-16 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100" />
+                {item.product_image && (
+                  <img src={item.product_image} alt={item.product_name} className="w-16 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold font-manrope text-gray-900">{item.product_name}</p>
                   <p className="text-xs text-gray-500 font-manrope">{item.size} · {item.color_name}</p>
-                  <p className="text-xs text-gray-500 font-manrope">SKU: {item.sku}</p>
+                  <p className="text-xs text-gray-500 font-manrope">SKU: {item.variant_sku}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-sm font-bold font-manrope text-gray-900">{formatKSh(item.unit_price)}</p>
@@ -100,8 +100,8 @@ export default function OrderDetailPage() {
             <div className="text-sm font-manrope text-gray-600 space-y-0.5">
               <p>{o.shipping_full_name}</p>
               <p>{o.shipping_phone}</p>
-              <p>{o.shipping_address_line_1}</p>
-              {o.shipping_address_line_2 && <p>{o.shipping_address_line_2}</p>}
+              <p>{o.shipping_address_1}</p>
+              {o.shipping_address_2 && <p>{o.shipping_address_2}</p>}
               <p>{o.shipping_city}, {o.shipping_county}</p>
             </div>
           </div>

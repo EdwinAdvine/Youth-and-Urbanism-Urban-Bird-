@@ -42,32 +42,65 @@ const HERO_SLIDES = [
 ];
 
 // ─── Category data ────────────────────────────────────────────────────────────
-const CATEGORIES = [
-  {
-    slug: "men",
-    label: "Men",
-    image: "https://urbanbird.co.ke/wp-content/uploads/2025/11/Side-Mocha-Dapper-Jacket-ws.webp",
-    fallback: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=600",
-  },
-  {
-    slug: "women",
-    label: "Women",
-    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600",
-    fallback: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600",
-  },
-  {
-    slug: "kids",
-    label: "Kids",
-    image: "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=600",
-    fallback: "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=600",
-  },
+const ALL_SLIDES = [
+  "/slides/017.jpg", "/slides/018.jpg", "/slides/020.jpg", "/slides/027.jpg",
+  "/slides/028.jpg", "/slides/029.jpg", "/slides/033.jpg", "/slides/036.jpg",
+  "/slides/040.jpg", "/slides/043.jpg", "/slides/046.jpg", "/slides/047.jpg",
+  "/slides/048.jpg", "/slides/049.jpg", "/slides/056.jpg", "/slides/057.jpg",
+  "/slides/060.jpg", "/slides/066.jpg", "/slides/067.jpg", "/slides/096.jpg",
+  "/slides/sat13.jpg", "/slides/sat14.jpg", "/slides/sat16.jpg", "/slides/sat17.jpg",
+  "/slides/sat22.jpg", "/slides/sat24.jpg", "/slides/sat26.jpg", "/slides/sat27.jpg",
+  "/slides/sat28.jpg", "/slides/sat31.jpg", "/slides/sat32.jpg", "/slides/sat36.jpg",
+  "/slides/sat9.jpg",
 ];
+
+const CATEGORIES = [
+  { slug: "men",   label: "Men",   startIndex: 0 },
+  { slug: "women", label: "Women", startIndex: 11 },
+  { slug: "kids",  label: "Kids",  startIndex: 22 },
+];
+
+function CategoryCard({ slug, label, startIndex }: { slug: string; label: string; startIndex: number }) {
+  const [current, setCurrent] = useState(startIndex % ALL_SLIDES.length);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % ALL_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <Link
+      to={`/category/${slug}`}
+      className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-md"
+    >
+      {ALL_SLIDES.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt={label}
+          className={`absolute inset-0 w-full h-full object-cover ${
+            i === current ? "opacity-100" : "opacity-0"
+          }`}
+          style={{ transition: "opacity 2s ease-in-out" }}
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+      <div className="absolute bottom-3 sm:bottom-6 left-3 sm:left-6">
+        <h3 className="text-base sm:text-2xl font-bold font-lexend text-white">{label}</h3>
+        <span className="text-xs sm:text-sm text-white/80 font-manrope group-hover:text-white transition-colors flex items-center gap-1 mt-0.5 sm:mt-1">
+          Shop Now <ArrowRight size={12} className="sm:w-3.5 sm:h-3.5" />
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 // ─── Hero Carousel ────────────────────────────────────────────────────────────
 function HeroCarousel() {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start", slidesToScroll: 1 });
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [slideKey, setSlideKey] = useState(0);
   const autoplayRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
@@ -83,7 +116,6 @@ function HeroCarousel() {
     if (!emblaApi) return;
     const onSelect = () => {
       setSelectedIndex(emblaApi.selectedScrollSnap());
-      setSlideKey((k) => k + 1);
       startAutoplay();
     };
     emblaApi.on("select", onSelect);
@@ -94,54 +126,33 @@ function HeroCarousel() {
     };
   }, [emblaApi, startAutoplay]);
 
-  const slide = HERO_SLIDES[selectedIndex];
-
   return (
-    <section className="relative overflow-hidden" style={{ height: "92vh", minHeight: 500 }}>
+    <section className="relative overflow-hidden bg-black" style={{ height: "78vh", minHeight: 400 }}>
       {/* Embla viewport */}
-      <div className="h-full" ref={emblaRef}>
-        <div className="flex h-full">
+      <div className="h-full px-1 sm:px-2" ref={emblaRef}>
+        <div className="flex h-full gap-1 sm:gap-2">
           {HERO_SLIDES.map((s, i) => (
-            <div key={i} className="relative flex-none w-full h-full">
+            <div key={i} className="relative flex-none w-full sm:w-1/2 lg:w-1/3 h-full rounded-xl sm:rounded-2xl overflow-hidden">
               <img
                 src={s.image}
                 alt={s.title}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading={i === 0 ? "eager" : "lazy"}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+              <div className="absolute bottom-5 sm:bottom-8 left-4 sm:left-5 right-4 sm:right-5">
+                <p className="text-white/70 font-manrope text-[10px] sm:text-xs uppercase tracking-widest mb-1">
+                  {s.subtitle}
+                </p>
+                <h2 className="font-lexend font-bold text-white leading-tight mb-3 text-lg sm:text-2xl lg:text-[1.75rem]">
+                  {s.title}
+                </h2>
+                <Link to={s.link}>
+                  <Button size="sm" className="shadow-lg text-xs sm:text-sm">{s.cta}</Button>
+                </Link>
+              </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Animated text overlay (key changes on each slide to re-trigger animation) */}
-      <div className="absolute inset-0 pointer-events-none flex items-center">
-        <div className="container-custom w-full">
-          <div key={slideKey} className="max-w-lg pointer-events-auto">
-            <p
-              className="animate-hero-text text-white/80 font-manrope text-sm uppercase tracking-[0.2em] mb-3"
-              style={{ animationDelay: "0ms" }}
-            >
-              {slide.subtitle}
-            </p>
-            <h1
-              className="animate-hero-text font-lexend font-bold text-white leading-none mb-6"
-              style={{
-                fontSize: "clamp(2.5rem, 6vw, 5rem)",
-                animationDelay: "120ms",
-              }}
-            >
-              {slide.title}
-            </h1>
-            <div className="animate-hero-text" style={{ animationDelay: "240ms" }}>
-              <Link to={slide.link}>
-                <Button size="lg" className="shadow-xl">
-                  {slide.cta}
-                </Button>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -162,7 +173,7 @@ function HeroCarousel() {
       </button>
 
       {/* Dot navigation */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
         {HERO_SLIDES.map((_, i) => (
           <button
             key={i}
@@ -220,46 +231,26 @@ export default function HomePage() {
       <HeroCarousel />
 
       {/* Category Showcase */}
-      <section className="container-custom py-16">
-        <h2 className="text-3xl font-bold font-lexend text-gray-900 mb-2 text-center">
+      <section className="container-custom py-10 sm:py-16">
+        <h2 className="text-2xl sm:text-3xl font-bold font-lexend text-gray-900 mb-2 text-center">
           Shop by Category
         </h2>
-        <p className="text-gray-500 font-manrope text-center mb-10">
+        <p className="text-gray-500 font-manrope text-center mb-8 sm:mb-10 text-sm sm:text-base">
           Discover our curated collections for every style
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {CATEGORIES.map(({ slug, label, image, fallback }) => (
-            <Link
-              key={slug}
-              to={`/category/${slug}`}
-              className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-md"
-            >
-              <img
-                src={image}
-                alt={label}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = fallback;
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-2xl font-bold font-lexend text-white">{label}</h3>
-                <span className="text-sm text-white/80 font-manrope group-hover:text-white transition-colors flex items-center gap-1 mt-1">
-                  Shop Now <ArrowRight size={14} />
-                </span>
-              </div>
-            </Link>
+        <div className="grid grid-cols-3 gap-3 sm:gap-6">
+          {CATEGORIES.map(({ slug, label, startIndex }) => (
+            <CategoryCard key={slug} slug={slug} label={label} startIndex={startIndex} />
           ))}
         </div>
       </section>
 
       {/* Trending Now */}
-      <section className="bg-gray-50 py-16">
+      <section className="bg-gray-50 py-10 sm:py-16">
         <div className="container-custom">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h2 className="text-3xl font-bold font-lexend text-gray-900">Trending Now</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold font-lexend text-gray-900">Trending Now</h2>
               <p className="text-gray-500 font-manrope text-sm mt-1">Our most loved pieces this season</p>
             </div>
             <Link
@@ -280,13 +271,13 @@ export default function HomePage() {
       </section>
 
       {/* One-Time Only Deals Banner */}
-      <section className="bg-maroon-700 py-10">
-        <div className="container-custom flex flex-col sm:flex-row items-center justify-between gap-6">
+      <section className="bg-maroon-700 py-8 sm:py-10">
+        <div className="container-custom flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6">
           <div className="text-white text-center sm:text-left">
             <p className="text-sm font-manrope uppercase tracking-widest text-maroon-200 mb-1">
               Limited Time
             </p>
-            <h2 className="text-3xl font-bold font-lexend leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold font-lexend leading-tight">
               One-Time Only Deals
             </h2>
             <p className="text-maroon-100 font-manrope mt-2 text-sm">
@@ -307,10 +298,10 @@ export default function HomePage() {
 
       {/* New Arrivals */}
       {newArrivals.length > 0 && (
-        <section className="container-custom py-16">
-          <div className="flex items-center justify-between mb-8">
+        <section className="container-custom py-10 sm:py-16">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h2 className="text-3xl font-bold font-lexend text-gray-900">New Arrivals</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold font-lexend text-gray-900">New Arrivals</h2>
               <p className="text-gray-500 font-manrope text-sm mt-1">Fresh drops every week</p>
             </div>
             <Link
@@ -326,12 +317,12 @@ export default function HomePage() {
 
       {/* On Sale Collection */}
       {saleProducts.length > 0 && (
-        <section className="bg-gray-50 py-16">
+        <section className="bg-gray-50 py-10 sm:py-16">
           <div className="container-custom">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
                 <span className="text-xs font-bold text-maroon-700 uppercase tracking-widest font-manrope">Limited Time</span>
-                <h2 className="text-3xl font-bold font-lexend text-gray-900 mt-1">On Sale Now</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold font-lexend text-gray-900 mt-1">On Sale Now</h2>
                 <p className="text-gray-500 font-manrope text-sm mt-1">Grab these deals before they're gone</p>
               </div>
               <Link
@@ -361,11 +352,11 @@ export default function HomePage() {
           <p className="text-maroon-300 font-manrope text-sm uppercase tracking-widest mb-3">
             Stay Connected
           </p>
-          <h2 className="text-3xl font-bold font-lexend text-white mb-3">Stay in the Loop</h2>
-          <p className="text-gray-300 font-manrope mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold font-lexend text-white mb-3">Stay in the Loop</h2>
+          <p className="text-gray-300 font-manrope mb-6 sm:mb-8 text-sm sm:text-base">
             Get exclusive deals, new arrivals, and style inspiration delivered to your inbox.
           </p>
-          <form onSubmit={handleNewsletterSubmit} className="flex gap-2 max-w-sm mx-auto">
+          <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto w-full">
             <input
               type="email"
               required

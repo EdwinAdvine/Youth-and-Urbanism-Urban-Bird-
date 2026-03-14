@@ -54,6 +54,12 @@
   }
 }
 
+/* Mobile: prevent tap highlight and ensure smooth scrolling */
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

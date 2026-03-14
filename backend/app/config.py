@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
 
+    # Paystack
+    paystack_secret_key: str = ""
+    paystack_public_key: str = ""
+    paystack_webhook_secret: str = ""
+
     # Email
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

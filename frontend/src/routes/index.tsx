@@ -77,22 +77,8 @@ export default function AppRoutes() {
           <Route path="cart" element={<CartPage />} />
           <Route path="wishlist" element={<WishlistPage />} />
           <Route path="compare" element={<ComparePage />} />
-          <Route
-            path="checkout"
-            element={
-              <RequireAuth>
-                <CheckoutPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="order-confirmation/:orderId"
-            element={
-              <RequireAuth>
-                <OrderConfirmationPage />
-              </RequireAuth>
-            }
-          />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage />} />
         </Route>
 
         {/* Auth pages (no layout chrome) */}

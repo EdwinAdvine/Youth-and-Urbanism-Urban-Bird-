@@ -30,10 +30,10 @@ export default function CartDrawer() {
               <div key={item.id} className="flex gap-4 p-4">
                 {/* Image */}
                 <div className="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                  {item.variant.product?.primary_image ? (
+                  {item.image_url ?? item.variant?.product?.primary_image ? (
                     <img
-                      src={item.variant.product.primary_image}
-                      alt={item.variant.product?.name}
+                      src={item.image_url ?? item.variant?.product?.primary_image}
+                      alt={item.product_name ?? item.variant?.product?.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -44,10 +44,10 @@ export default function CartDrawer() {
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 font-manrope line-clamp-1">
-                    {item.variant.product?.name}
+                    {item.product_name ?? item.variant?.product?.name}
                   </p>
                   <p className="text-xs text-gray-500 font-manrope mt-0.5">
-                    {item.variant.size} · {item.variant.color_name}
+                    {item.size ?? item.variant?.size} · {item.color_name ?? item.variant?.color_name}
                   </p>
                   <p className="text-sm font-bold text-maroon-700 font-manrope mt-1">
                     {formatKSh(item.unit_price)}

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from decimal import Decimal
 from datetime import datetime, timezone
+from typing import Optional
 import uuid
 
 from app.database import get_db
@@ -14,7 +15,7 @@ from app.models.coupon import Coupon, CouponUsage
 from app.models.product import Product, ProductVariant
 from app.models.payment import Payment
 from app.schemas.order import CheckoutRequest, OrderOut, OrderListItem
-from app.api.deps import get_current_active_user
+from app.api.deps import get_current_active_user, get_optional_user
 from app.services.email_service import send_order_confirmation
 from app.services.sms_service import send_order_confirmation_sms
 from app.utils.formatters import format_ksh
@@ -31,10 +32,10 @@ VALID_STATUSES = [
 
 
 def _generate_order_number() -> str:
-    import random
+    import secrets
     from datetime import date
     today = date.today().strftime("%Y%m%d")
-    suffix = str(random.randint(10000, 99999))
+    suffix = str(secrets.randbelow(90000) + 10000)
     return f"UB-{today}-{suffix}"
 
 
@@ -42,15 +43,29 @@ def _generate_order_number() -> str:
 async def checkout(
     data: CheckoutRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_optional_user),
+    cart_session: Optional[str] = Cookie(default=None),
 ):
-    # Get cart
-    cart_result = await db.execute(
-        select(Cart)
-        .options(selectinload(Cart.items).selectinload(CartItem.product),
-                 selectinload(Cart.items).selectinload(CartItem.variant))
-        .where(Cart.user_id == current_user.id)
-    )
+    # Validate guest checkout requirements
+    if not current_user:
+        if not data.guest_email:
+            raise HTTPException(status_code=400, detail="guest_email is required for guest checkout")
+
+    # Get cart — by user_id for authenticated users, by session_id for guests
+    if current_user:
+        cart_query = select(Cart).options(
+            selectinload(Cart.items).selectinload(CartItem.product),
+            selectinload(Cart.items).selectinload(CartItem.variant),
+        ).where(Cart.user_id == current_user.id)
+    else:
+        if not cart_session:
+            raise HTTPException(status_code=400, detail="No cart session found")
+        cart_query = select(Cart).options(
+            selectinload(Cart.items).selectinload(CartItem.product),
+            selectinload(Cart.items).selectinload(CartItem.variant),
+        ).where(Cart.session_id == cart_session)
+
+    cart_result = await db.execute(cart_query)
     cart = cart_result.scalar_one_or_none()
     if not cart or not cart.items:
         raise HTTPException(status_code=400, detail="Cart is empty")
@@ -86,7 +101,8 @@ async def checkout(
 
     # Create order
     order = Order(
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
+        guest_email=None if current_user else data.guest_email,
         order_number=_generate_order_number(),
         status="pending_payment",
         subtotal=subtotal,
@@ -156,7 +172,7 @@ async def checkout(
     # Create payment record
     payment = Payment(
         order_id=order.id,
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
         gateway=data.payment_method,
         amount=total,
         status="pending",
@@ -178,18 +194,21 @@ async def checkout(
     full_order = result.scalar_one()
 
     # Send order confirmation notifications (non-blocking)
-    order_url = f"{__import__('app.config', fromlist=['settings']).settings.frontend_url}/account/orders/{full_order.id}"
+    order_url = f"{__import__('app.config', fromlist=['settings']).settings.frontend_url}/order-confirmation/{full_order.order_number}"
     total_str = format_ksh(full_order.total)
-    asyncio.create_task(
-        send_order_confirmation(
-            current_user.email,
-            current_user.first_name,
-            full_order.order_number,
-            total_str,
-            order_url,
+    email_to = current_user.email if current_user else data.guest_email
+    first_name = current_user.first_name if current_user else data.shipping_full_name.split()[0]
+    if email_to:
+        asyncio.create_task(
+            send_order_confirmation(
+                email_to,
+                first_name,
+                full_order.order_number,
+                total_str,
+                order_url,
+            )
         )
-    )
-    if current_user.phone:
+    if current_user and current_user.phone:
         asyncio.create_task(
             send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
         )
@@ -231,13 +250,25 @@ async def list_orders(
 async def get_order(
     order_number: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_optional_user),
+    guest_email: Optional[str] = Query(default=None),
 ):
-    result = await db.execute(
+    query = (
         select(Order)
         .options(selectinload(Order.items), selectinload(Order.status_history))
-        .where(Order.order_number == order_number, Order.user_id == current_user.id)
+        .where(Order.order_number == order_number)
     )
+    if current_user:
+        query = query.where(Order.user_id == current_user.id)
+    else:
+        # Guests must provide the email used at checkout to prove ownership
+        if not guest_email:
+            raise HTTPException(status_code=401, detail="Email verification required")
+        query = query.where(
+            Order.user_id.is_(None),
+            Order.guest_email == guest_email.lower().strip(),
+        )
+    result = await db.execute(query)
     order = result.scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")

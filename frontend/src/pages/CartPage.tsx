@@ -22,19 +22,19 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container-custom py-8">
-      <h1 className="text-3xl font-bold font-lexend text-gray-900 mb-8">
+    <div className="container-custom py-6 sm:py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold font-lexend text-gray-900 mb-6 sm:mb-8">
         Cart ({cart?.item_count})
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         {/* Items */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-4">
           {items.map((item) => (
-            <div key={item.id} className="flex gap-4 bg-white rounded-xl p-4 border border-gray-100">
-              <div className="w-24 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                {item.variant.product?.primary_image ? (
-                  <img src={item.variant.product.primary_image} alt="" className="w-full h-full object-cover" />
+            <div key={item.id} className="flex gap-3 sm:gap-4 bg-white rounded-xl p-3 sm:p-4 border border-gray-100">
+              <div className="w-20 h-24 sm:w-24 sm:h-28 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                {(item.image_url ?? item.variant?.product?.primary_image) ? (
+                  <img src={item.image_url ?? item.variant?.product?.primary_image} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gray-200" />
                 )}
@@ -43,10 +43,10 @@ export default function CartPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between">
                   <Link
-                    to={`/products/${item.variant.product?.slug}`}
+                    to={`/products/${item.product_slug ?? item.variant?.product?.slug}`}
                     className="font-semibold text-gray-900 font-manrope hover:text-maroon-700 transition-colors line-clamp-1"
                   >
-                    {item.variant.product?.name}
+                    {item.product_name ?? item.variant?.product?.name}
                   </Link>
                   <button
                     onClick={() => removeItem(item.id)}
@@ -56,7 +56,7 @@ export default function CartPage() {
                   </button>
                 </div>
                 <p className="text-sm text-gray-500 font-manrope">
-                  {item.variant.size} · {item.variant.color_name}
+                  {item.size ?? item.variant?.size} · {item.color_name ?? item.variant?.color_name}
                 </p>
                 <p className="text-sm font-bold text-maroon-700 font-manrope mt-1">
                   {formatKSh(item.unit_price)}
@@ -95,8 +95,8 @@ export default function CartPage() {
         </div>
 
         {/* Order summary */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl border border-gray-100 p-6 sticky top-24">
+        <div className="md:col-span-1">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 sticky top-20 md:top-24">
             <h2 className="text-lg font-bold font-lexend text-gray-900 mb-5">Order Summary</h2>
             <div className="space-y-3 text-sm font-manrope">
               <div className="flex justify-between">

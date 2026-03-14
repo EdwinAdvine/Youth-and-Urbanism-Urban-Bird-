@@ -13,7 +13,7 @@ export default function StorefrontLayout() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-1 pb-16 lg:pb-0">
+      <main className="flex-1 pb-20 lg:pb-0">
         <Outlet />
       </main>
       <Footer />
@@ -28,7 +28,7 @@ export default function StorefrontLayout() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with us on WhatsApp"
-        className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 w-13 h-13 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+        className="fixed bottom-[calc(3.75rem+0.75rem)] right-4 lg:bottom-6 lg:right-6 z-50 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
         style={{ backgroundColor: "#25D366", width: 52, height: 52 }}
       >
         {/* WhatsApp SVG */}

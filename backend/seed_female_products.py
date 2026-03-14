@@ -14,14 +14,26 @@ from sqlalchemy import select
 
 from app.database import engine, AsyncSessionLocal, Base
 from app.models import Category, Subcategory, Product, ProductVariant, ProductImage
+# Import extra models so SQLAlchemy can resolve all relationships
+from app.models import newsletter as _nm  # noqa: F401
+from app.models import return_request as _rm  # noqa: F401
+from app.models import audit_log as _am  # noqa: F401
+from app.models import site_settings as _sm  # noqa: F401
+from app.models import banner as _bm  # noqa: F401
 
 
-# Paths (resolved relative to this script's location)
+# Paths — override via env vars when running inside Docker
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 
-FEMALE_IMAGES_DIR = os.path.join(PROJECT_ROOT, "frontend", "src", "assets", "images", "Products", "Female")
-UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
+FEMALE_IMAGES_DIR = os.environ.get(
+    "FEMALE_IMAGES_DIR",
+    os.path.join(PROJECT_ROOT, "frontend", "src", "assets", "images", "Products", "Female")
+)
+UPLOAD_DIR = os.environ.get(
+    "UPLOAD_DIR",
+    os.path.join(BACKEND_DIR, "uploads")
+)
 
 SIZES = ["S", "M", "L", "XL", "XXL"]
 COLORS = [("Black", "#000000"), ("Navy Blue", "#1a237e"), ("Maroon", "#782121")]

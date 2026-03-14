@@ -21,7 +21,7 @@ export default function AddressesPage() {
 
   const load = () => {
     setIsLoading(true);
-    api.get<Address[]>("/api/v1/users/addresses")
+    api.get<Address[]>("/api/v1/users/me/addresses")
       .then((r) => setAddresses(r.data))
       .catch(() => {})
       .finally(() => setIsLoading(false));
@@ -37,9 +37,9 @@ export default function AddressesPage() {
     setIsSaving(true);
     try {
       if (editAddress.id) {
-        await api.patch(`/api/v1/users/addresses/${editAddress.id}`, editAddress);
+        await api.patch(`/api/v1/users/me/addresses/${editAddress.id}`, editAddress);
       } else {
-        await api.post("/api/v1/users/addresses", editAddress);
+        await api.post("/api/v1/users/me/addresses", editAddress);
       }
       toast.success("Address saved!");
       setModalOpen(false);
@@ -54,7 +54,7 @@ export default function AddressesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this address?")) return;
     try {
-      await api.delete(`/api/v1/users/addresses/${id}`);
+      await api.delete(`/api/v1/users/me/addresses/${id}`);
       toast.success("Address deleted.");
       load();
     } catch {
@@ -64,7 +64,7 @@ export default function AddressesPage() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      await api.post(`/api/v1/users/addresses/${id}/set-default`);
+      await api.post(`/api/v1/users/me/addresses/${id}/set-default`);
       load();
     } catch {
       toast.error("Failed to set default.");

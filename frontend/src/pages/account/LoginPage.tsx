@@ -23,6 +23,11 @@ export default function LoginPage() {
     clearError();
     try {
       await login({ email, password });
+      const user = useAuthStore.getState().user;
+      if (user && ["admin", "super_admin"].includes(user.role)) {
+        navigate("/admin", { replace: true });
+        return;
+      }
       await fetchCart();
       toast.success("Welcome back!");
       navigate(from, { replace: true });

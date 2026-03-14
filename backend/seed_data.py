@@ -182,7 +182,7 @@ async def seed():
                 for color_name, color_hex in colors:
                     variant = ProductVariant(
                         product_id=product.id,
-                        sku=f"{product.slug[:10].upper()}-{size}-{color_name[:3].upper()}",
+                        sku=f"{product.slug[:15].upper()}-{size}-{color_name[:3].upper()}",
                         size=size,
                         color_name=color_name,
                         color_hex=color_hex,

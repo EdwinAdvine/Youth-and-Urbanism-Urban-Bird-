@@ -36,7 +36,7 @@ export default function OrderHistoryPage() {
             return (
               <Link
                 key={order.id}
-                to={`/account/orders/${order.id}`}
+                to={`/account/orders/${order.order_number}`}
                 className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex-1 min-w-0">

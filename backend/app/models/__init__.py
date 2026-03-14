@@ -6,6 +6,7 @@ from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.payment import Payment
 from app.models.coupon import Coupon, CouponUsage
 from app.models.shipping import ShippingZone, ShippingRate
+from app.models.return_request import ReturnRequest
 
 __all__ = [
     "User", "UserAddress",
@@ -16,4 +17,5 @@ __all__ = [
     "Payment",
     "Coupon", "CouponUsage",
     "ShippingZone", "ShippingRate",
+    "ReturnRequest",
 ]

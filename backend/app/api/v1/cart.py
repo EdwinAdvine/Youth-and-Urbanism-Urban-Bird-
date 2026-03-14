@@ -8,14 +8,22 @@ import uuid
 
 from app.database import get_db
 from app.models.cart import Cart, CartItem
-from app.models.product import Product, ProductVariant
+from app.models.product import Product, ProductVariant, ProductImage
 from app.models.coupon import Coupon
 from app.schemas.cart import CartItemAdd, CartItemUpdate, CartOut, CartItemOut, CouponApply
 from app.api.deps import get_optional_user
 from app.models.user import User
+from app.config import settings
 from datetime import datetime, timezone
 
 router = APIRouter()
+
+
+def _cart_eager_options():
+    return [
+        selectinload(Cart.items).selectinload(CartItem.product).selectinload(Product.images),
+        selectinload(Cart.items).selectinload(CartItem.variant),
+    ]
 
 
 async def get_or_create_cart(
@@ -25,33 +33,45 @@ async def get_or_create_cart(
     response: Response,
 ) -> tuple[Cart, str]:
     """Get or create cart for user or guest. Returns (cart, session_id)."""
+
     if user:
         result = await db.execute(
-            select(Cart).options(selectinload(Cart.items).selectinload(CartItem.product),
-                                 selectinload(Cart.items).selectinload(CartItem.variant))
-            .where(Cart.user_id == user.id)
+            select(Cart).options(*_cart_eager_options()).where(Cart.user_id == user.id)
         )
         cart = result.scalar_one_or_none()
         if not cart:
             cart = Cart(user_id=user.id)
             db.add(cart)
             await db.flush()
+            result = await db.execute(
+                select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
+            )
+            cart = result.scalar_one()
         return cart, session_id or ""
     else:
         if not session_id:
             session_id = str(uuid.uuid4()).replace("-", "")
-            response.set_cookie("cart_session", session_id, max_age=7*86400, httponly=True)
+            response.set_cookie(
+                "cart_session",
+                session_id,
+                max_age=7 * 86400,
+                httponly=True,
+                samesite="lax",
+                secure=settings.environment == "production",
+            )
 
         result = await db.execute(
-            select(Cart).options(selectinload(Cart.items).selectinload(CartItem.product),
-                                 selectinload(Cart.items).selectinload(CartItem.variant))
-            .where(Cart.session_id == session_id)
+            select(Cart).options(*_cart_eager_options()).where(Cart.session_id == session_id)
         )
         cart = result.scalar_one_or_none()
         if not cart:
             cart = Cart(session_id=session_id)
             db.add(cart)
             await db.flush()
+            result = await db.execute(
+                select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
+            )
+            cart = result.scalar_one()
         return cart, session_id
 
 
@@ -72,7 +92,7 @@ def _build_cart_out(cart: Cart) -> CartOut:
             variant_sku=item.variant.sku if item.variant else "",
             size=item.variant.size if item.variant else "",
             color_name=item.variant.color_name if item.variant else "",
-            image_url=None,  # Simplified - would load from product images
+            image_url=item.product.primary_image.url if item.product and item.product.primary_image else None,
             total_price=total,
         ))
 
@@ -143,9 +163,7 @@ async def add_to_cart(
 
     # Reload cart
     result = await db.execute(
-        select(Cart).options(selectinload(Cart.items).selectinload(CartItem.product),
-                             selectinload(Cart.items).selectinload(CartItem.variant))
-        .where(Cart.id == cart.id)
+        select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)
@@ -179,9 +197,7 @@ async def update_cart_item(
 
     await db.flush()
     result = await db.execute(
-        select(Cart).options(selectinload(Cart.items).selectinload(CartItem.product),
-                             selectinload(Cart.items).selectinload(CartItem.variant))
-        .where(Cart.id == cart.id)
+        select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)
@@ -207,9 +223,7 @@ async def remove_cart_item(
     await db.flush()
 
     result = await db.execute(
-        select(Cart).options(selectinload(Cart.items).selectinload(CartItem.product),
-                             selectinload(Cart.items).selectinload(CartItem.variant))
-        .where(Cart.id == cart.id)
+        select(Cart).options(*_cart_eager_options()).where(Cart.id == cart.id)
     )
     cart = result.scalar_one()
     return _build_cart_out(cart)

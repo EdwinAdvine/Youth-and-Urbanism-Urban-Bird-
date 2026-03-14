@@ -9,7 +9,7 @@ export default function SearchPage() {
   const { products, totalCount, isLoading, fetchProducts } = useProductStore();
 
   useEffect(() => {
-    if (query) fetchProducts({ search: query, sort: "relevance" as any }, 1);
+    if (query) fetchProducts({ search: query, sort: "popularity" }, 1);
   }, [query]);
 
   return (

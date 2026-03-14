@@ -50,6 +50,5 @@ redis_data/
 # Alembic (keep versions but not __pycache__)
 backend/alembic/versions/__pycache__/
 
-# Large design source files (not needed in repo)
-*.psd
-frontend/src/assets/images/Design/
+# Images (managed separately, not tracked in git)
+frontend/src/assets/images/

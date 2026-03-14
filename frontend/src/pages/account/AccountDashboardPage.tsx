@@ -77,12 +77,12 @@ export default function AccountDashboardPage() {
             {orders.slice(0, 3).map((order) => (
               <Link
                 key={order.id}
-                to={`/account/orders/${order.id}`}
+                to={`/account/orders/${order.order_number}`}
                 className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div>
                   <p className="text-sm font-semibold font-manrope text-gray-900">{order.order_number}</p>
-                  <p className="text-xs text-gray-500 font-manrope">{formatDate(order.created_at)} · {order.items?.length ?? 0} items</p>
+                  <p className="text-xs text-gray-500 font-manrope">{formatDate(order.created_at)} · {order.item_count ?? 0} items</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={getStatusVariant(order.status)}>

@@ -21,8 +21,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     label: "MEN",
     slug: "men",
     href: "/category/men",
-    bannerUrl:
-      "https://urbanbird.co.ke/wp-content/uploads/2025/11/Side-Mocha-Dapper-Jacket-ws.webp",
+    bannerUrl: "/category-men.jpg",
     groups: [
       {
         title: "TOPS",
@@ -63,8 +62,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     label: "WOMEN",
     slug: "women",
     href: "/category/women",
-    bannerUrl:
-      "https://urbanbird.co.ke/wp-content/uploads/2025/11/Aria-Grey-Crop-Top-ws.webp",
+    bannerUrl: "/category-women.jpg",
     groups: [
       {
         title: "TOPS",
@@ -111,8 +109,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     label: "KIDS",
     slug: "kids",
     href: "/category/kids",
-    bannerUrl:
-      "https://urbanbird.co.ke/wp-content/uploads/2025/11/peach-tshirt-kids.webp",
+    bannerUrl: "/category-kids.jpg",
     groups: [
       {
         title: "LAYERS & JACKETS",

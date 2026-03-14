@@ -25,7 +25,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const inWishlist = isInWishlist(product.id);
   const inCompare = isInCompare(product.id);
   const images = product.images ?? [];
-  const primaryImage = images.find((i) => i.is_primary)?.thumbnail_url ?? images[0]?.thumbnail_url;
+  const primaryImage =
+    images.find((i) => i.is_primary)?.thumbnail_url ??
+    images[0]?.thumbnail_url ??
+    product.primary_image?.thumbnail_url ??
+    product.primary_image?.url;
   const hoverImage = images[1]?.thumbnail_url;
 
   const defaultVariant = product.variants?.find((v) => v.stock_quantity > 0) ?? product.variants?.[0];
@@ -102,17 +106,18 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons — always visible on mobile, hover-reveal on desktop */}
           <div
             className={cn(
               "absolute top-2 right-2 flex flex-col gap-2 transition-all duration-200",
-              isHovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
+              "opacity-100 translate-x-0 md:opacity-0 md:translate-x-4",
+              isHovered && "md:opacity-100 md:translate-x-0"
             )}
           >
             <button
               onClick={handleWishlist}
               className={cn(
-                "w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center transition-colors",
+                "w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center transition-colors",
                 inWishlist ? "text-maroon-700" : "text-gray-600 hover:text-maroon-700"
               )}
               title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
@@ -121,7 +126,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </button>
             <button
               onClick={handleQuickView}
-              className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-gray-600 hover:text-maroon-700 transition-colors"
+              className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-gray-600 hover:text-maroon-700 transition-colors"
               title="Quick view"
             >
               <Eye size={15} />
@@ -129,7 +134,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <button
               onClick={handleCompare}
               className={cn(
-                "w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center transition-colors",
+                "w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center transition-colors",
                 inCompare ? "text-maroon-700" : "text-gray-600 hover:text-maroon-700"
               )}
               title={inCompare ? "Remove from compare" : "Add to compare"}
@@ -138,11 +143,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             </button>
           </div>
 
-          {/* Add to cart button */}
+          {/* Add to cart button — always visible on mobile */}
           <div
             className={cn(
               "absolute bottom-0 left-0 right-0 transition-all duration-200",
-              isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              "opacity-100 translate-y-0 md:opacity-0 md:translate-y-4",
+              isHovered && "md:opacity-100 md:translate-y-0"
             )}
           >
             <button
@@ -180,7 +186,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 .map((v) => (
                   <span
                     key={v.color_hex}
-                    className="w-4 h-4 rounded-full border-2 border-white ring-1 ring-gray-200"
+                    className="w-5 h-5 sm:w-4 sm:h-4 rounded-full border-2 border-white ring-1 ring-gray-200"
                     style={{ backgroundColor: v.color_hex }}
                     title={v.color_name}
                   />

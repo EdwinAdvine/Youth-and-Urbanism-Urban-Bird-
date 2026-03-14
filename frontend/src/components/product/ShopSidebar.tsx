@@ -39,9 +39,11 @@ function Section({ title, children, defaultOpen = true }: SectionProps) {
 
 interface ShopSidebarProps {
   onClose?: () => void;
+  activeCategory?: string;
+  onCategoryNavigate?: (slug: string) => void;
 }
 
-export default function ShopSidebar({ onClose }: ShopSidebarProps) {
+export default function ShopSidebar({ onClose, activeCategory, onCategoryNavigate }: ShopSidebarProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [priceMin, setPriceMin] = useState(searchParams.get("price_min") || "");
@@ -104,9 +106,9 @@ export default function ShopSidebar({ onClose }: ShopSidebarProps) {
         {(Array.isArray(categories) ? categories : []).map((cat) => (
           <div key={cat.id} className="mb-2">
             <button
-              onClick={() => update("category", cat.slug)}
+              onClick={() => onCategoryNavigate ? onCategoryNavigate(cat.slug) : update("category", cat.slug)}
               className={`text-sm font-manrope font-semibold w-full text-left py-1 transition-colors ${
-                searchParams.get("category") === cat.slug
+                (activeCategory ?? searchParams.get("category")) === cat.slug
                   ? "text-maroon-700"
                   : "text-gray-800 hover:text-maroon-700"
               }`}

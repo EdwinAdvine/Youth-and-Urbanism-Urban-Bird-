@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
 import uuid
 
 from app.database import get_db
@@ -12,6 +13,10 @@ from app.api.deps import get_current_active_user
 from app.schemas.product import ProductListItem
 
 router = APIRouter()
+
+
+class WishlistAddRequest(BaseModel):
+    product_id: uuid.UUID
 
 
 @router.get("", response_model=list[ProductListItem])
@@ -32,11 +37,11 @@ async def get_wishlist(
 
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 async def add_to_wishlist(
-    product_id: uuid.UUID,
+    data: WishlistAddRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product_result = await db.execute(select(Product).where(Product.id == data.product_id))
     if not product_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -48,12 +53,12 @@ async def add_to_wishlist(
         await db.flush()
 
     existing = await db.execute(
-        select(WishlistItem).where(WishlistItem.wishlist_id == wishlist.id, WishlistItem.product_id == product_id)
+        select(WishlistItem).where(WishlistItem.wishlist_id == wishlist.id, WishlistItem.product_id == data.product_id)
     )
     if existing.scalar_one_or_none():
         return {"message": "Already in wishlist"}
 
-    db.add(WishlistItem(wishlist_id=wishlist.id, product_id=product_id))
+    db.add(WishlistItem(wishlist_id=wishlist.id, product_id=data.product_id))
     return {"message": "Added to wishlist"}
 
 

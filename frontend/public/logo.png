@@ -1,0 +1,2 @@
+Blocked request. This host ("urbanbird.co.ke") is not allowed.
+To allow this host, add "urbanbird.co.ke" to `server.allowedHosts` in vite.config.js.

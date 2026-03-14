@@ -24,9 +24,12 @@ export default function ShopPage() {
 
   useEffect(() => {
     const params: Record<string, any> = { sort: currentSort };
-    if (searchParams.get("category")) params.category_slug = searchParams.get("category");
-    if (searchParams.get("sub")) params.subcategory_slug = searchParams.get("sub");
+    if (searchParams.get("category")) params.category = searchParams.get("category");
+    if (searchParams.get("sub")) params.subcategory = searchParams.get("sub");
     if (searchParams.get("on_sale") === "true") params.on_sale = true;
+    if (searchParams.get("in_stock") === "true") params.in_stock = true;
+    if (searchParams.get("price_min")) params.min_price = Number(searchParams.get("price_min"));
+    if (searchParams.get("price_max")) params.max_price = Number(searchParams.get("price_max"));
     if (searchParams.get("q")) params.search = searchParams.get("q");
     fetchProducts(params, currentPage);
   }, [searchParams.toString()]);
@@ -38,10 +41,10 @@ export default function ShopPage() {
   const totalPages = Math.ceil(totalCount / 24);
 
   return (
-    <div className="container-custom py-8">
+    <div className="container-custom py-6 sm:py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold font-lexend text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold font-lexend text-gray-900">
             {searchParams.get("on_sale") === "true" ? "Sale" : "All Products"}
           </h1>
           <p className="text-sm text-gray-500 font-manrope mt-1">
@@ -87,7 +90,7 @@ export default function ShopPage() {
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-            <div className="absolute right-0 top-0 bottom-0 w-72 bg-white overflow-y-auto">
+            <div className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-xs bg-white overflow-y-auto">
               <div className="flex items-center justify-between p-4 border-b border-gray-100">
                 <h2 className="font-semibold font-lexend text-gray-900">Filters</h2>
                 <button onClick={() => setSidebarOpen(false)} className="text-gray-500 text-sm font-manrope">

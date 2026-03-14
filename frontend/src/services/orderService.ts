@@ -14,6 +14,13 @@ export interface CheckoutRequest {
   payment_method: string;
   coupon_code?: string;
   mpesa_phone?: string;
+  guest_email?: string;
+}
+
+export interface MpesaInitiateResponse {
+  checkout_request_id: string;
+  merchant_request_id: string;
+  message: string;
 }
 
 export const orderService = {
@@ -28,11 +35,36 @@ export const orderService = {
   },
 
   async getOrder(orderNumber: string): Promise<Order> {
-    const res = await api.get<Order>(`${BASE}/${orderNumber}`);
+    const guestEmail = sessionStorage.getItem("ub_guest_email");
+    const params = guestEmail ? { guest_email: guestEmail } : undefined;
+    const res = await api.get<Order>(`${BASE}/${orderNumber}`, { params });
     return res.data;
   },
 
   async cancelOrder(orderNumber: string): Promise<void> {
     await api.post(`${BASE}/${orderNumber}/cancel`);
+  },
+
+  async initiateMpesa(orderId: string, phone: string): Promise<MpesaInitiateResponse> {
+    const res = await api.post<MpesaInitiateResponse>("/api/v1/payments/mpesa/initiate", {
+      order_id: orderId,
+      phone,
+    });
+    return res.data;
+  },
+
+  async checkMpesaStatus(checkoutRequestId: string): Promise<{ ResultCode: number; ResultDesc: string }> {
+    const res = await api.get(`/api/v1/payments/mpesa/status/${checkoutRequestId}`);
+    return res.data;
+  },
+
+  async initializePaystack(orderId: string): Promise<{ authorization_url: string; reference: string; access_code: string }> {
+    const res = await api.post("/api/v1/payments/paystack/initialize", { order_id: orderId });
+    return res.data;
+  },
+
+  async verifyPaystack(reference: string): Promise<{ status: string; message: string }> {
+    const res = await api.get(`/api/v1/payments/paystack/verify/${reference}`);
+    return res.data;
   },
 };

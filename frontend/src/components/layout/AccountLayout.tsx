@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { User, Package, MapPin, Settings, ChevronRight } from "lucide-react";
 import Header from "../header/Header";
 import Footer from "../footer/Footer";
@@ -14,6 +14,10 @@ const navItems = [
 export default function AccountLayout() {
   const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
+
+  if (user && ["admin", "super_admin"].includes(user.role)) {
+    return <Navigate to="/admin" replace />;
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

@@ -17,7 +17,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     setExpandedCat((v) => (v === slug ? null : slug));
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} side="left" width="w-72">
+    <Drawer isOpen={isOpen} onClose={onClose} side="left" width="w-[85vw] max-w-xs sm:max-w-sm">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100">
         <Logo className="text-xl" />

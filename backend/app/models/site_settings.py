@@ -25,8 +25,10 @@ class SiteSetting(Base):
 
 # Default setting keys and their initial values
 DEFAULT_SETTINGS = {
+    # ── Store Identity ────────────────────────────────────────────────────────
     "store_name": "Urban Bird",
     "store_tagline": "Premium Urban Streetwear Kenya",
+    "store_logo_url": "",
     "whatsapp_number": "254700000000",
     "whatsapp_message": "Hello Urban Bird! I'd like some help with my order.",
     "low_stock_threshold": 10,
@@ -43,6 +45,37 @@ DEFAULT_SETTINGS = {
         "pinterest": "https://pinterest.com/urbanbird_ke",
         "whatsapp": "https://wa.me/254700000000",
     },
+
+    # ── Paystack ──────────────────────────────────────────────────────────────
+    "paystack_public_key": "",
+    "paystack_secret_key": "",
+    "paystack_webhook_secret": "",
+
+    # ── M-Pesa (Safaricom Daraja) ─────────────────────────────────────────────
+    "mpesa_environment": "sandbox",
+    "mpesa_consumer_key": "",
+    "mpesa_consumer_secret": "",
+    "mpesa_shortcode": "",
+    "mpesa_passkey": "",
+    "mpesa_callback_url": "",
+
+    # ── Stripe ────────────────────────────────────────────────────────────────
+    "stripe_publishable_key": "",
+    "stripe_secret_key": "",
+    "stripe_webhook_secret": "",
+
+    # ── Email / SMTP ──────────────────────────────────────────────────────────
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "smtp_user": "",
+    "smtp_password": "",
+    "from_email": "",
+    "from_name": "Urban Bird",
+
+    # ── SMS (Africa's Talking) ────────────────────────────────────────────────
+    "at_username": "sandbox",
+    "at_api_key": "",
+    "at_sender_id": "URBANBIRD",
 }
 
 
