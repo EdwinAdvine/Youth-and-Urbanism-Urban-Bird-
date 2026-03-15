@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.order import Order, OrderStatusHistory, OrderItem
 from app.models.notification import Notification
 from app.models.product import Product, ProductVariant
+from app.models.coupon import Coupon
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.schemas.order import OrderOut, UpdateOrderStatus
@@ -298,6 +299,16 @@ async def delete_order(
                 variant.stock_quantity += item.quantity
             if product:
                 product.total_stock += item.quantity
+                product.purchase_count = max(0, product.purchase_count - item.quantity)
+
+    # Decrement coupon times_used if this order applied a coupon
+    if order.coupon_code:
+        coupon_result = await db.execute(
+            select(Coupon).where(Coupon.code == order.coupon_code)
+        )
+        coupon = coupon_result.scalar_one_or_none()
+        if coupon and coupon.times_used > 0:
+            coupon.times_used -= 1
 
     db.add(AuditLog(
         admin_id=admin.id,

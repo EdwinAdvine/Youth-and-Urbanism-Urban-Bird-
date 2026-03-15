@@ -62,7 +62,7 @@ class Order(Base):
     user: Mapped["User"] = relationship("User", back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     status_history: Mapped[list["OrderStatusHistory"]] = relationship("OrderStatusHistory", back_populates="order", cascade="all, delete-orphan")
-    payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="order")
+    payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="order", passive_deletes=True)
     return_requests: Mapped[list["ReturnRequest"]] = relationship("ReturnRequest", back_populates="order", cascade="all, delete-orphan")
 
 
