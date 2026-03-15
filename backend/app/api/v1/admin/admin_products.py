@@ -215,6 +215,7 @@ async def update_product(
             db.add(variant)
             total_stock += v_data.get("stock_quantity", 0)
         product.total_stock = total_stock
+    await db.flush()
 
     result = await db.execute(
         select(Product)

@@ -84,7 +84,7 @@ export default function AdminProductFormPage() {
       toast.error("Select at least one size and one color (or mix)");
       return;
     }
-    const slug = form.slug || "PROD";
+    const slug = form.slug || form.name.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "-").trim() || "PROD";
     const newVariants: VariantRow[] = selectedSizes.flatMap((size) =>
       colorGroups.map((group) => {
         const isMulti = group.colors.length > 1;
@@ -135,6 +135,9 @@ export default function AdminProductFormPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (variants.length === 0) {
+      toast("No variants added — product will not be purchasable on the storefront until variants are added.", { icon: "⚠️" });
+    }
     setIsSaving(true);
     try {
       const payload = {
@@ -167,7 +170,11 @@ export default function AdminProductFormPage() {
       toast.success(isEdit ? "Product updated!" : "Product created!");
       navigate("/admin/products");
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to save product.");
+      const detail = err.response?.data?.detail;
+      const msg = Array.isArray(detail)
+        ? detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join("; ")
+        : (detail || "Failed to save product.");
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }

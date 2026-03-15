@@ -52,12 +52,12 @@ export const useProductStore = create<ProductState>()((set, get) => ({
   },
 
   fetchProduct: async (slug) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, currentProduct: null });
     try {
       const product = await productService.getProductBySlug(slug);
       set({ currentProduct: product, isLoading: false });
     } catch {
-      set({ isLoading: false, error: "Product not found" });
+      set({ isLoading: false, error: "Product not found", currentProduct: null });
     }
   },
 
