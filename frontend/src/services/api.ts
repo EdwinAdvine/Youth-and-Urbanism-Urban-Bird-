@@ -36,7 +36,12 @@ function processQueue(error: unknown, token: string | null = null) {
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    // Tell browsers and proxies never to serve a cached API response
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+  },
   timeout: 30000,
   withCredentials: true,
 });

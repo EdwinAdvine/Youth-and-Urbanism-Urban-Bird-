@@ -91,6 +91,17 @@ class ImageCacheMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class NoCacheAPIMiddleware(BaseHTTPMiddleware):
+    """Ensure all API responses are never cached — changes appear immediately after deployment."""
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
 _docs_url = "/docs" if settings.environment != "production" else None
 _redoc_url = "/redoc" if settings.environment != "production" else None
 
@@ -108,6 +119,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ImageCacheMiddleware)
+app.add_middleware(NoCacheAPIMiddleware)
 
 _cors_origins = [settings.frontend_url]
 if settings.environment != "production":
