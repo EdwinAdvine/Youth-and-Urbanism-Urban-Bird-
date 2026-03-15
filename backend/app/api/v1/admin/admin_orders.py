@@ -7,6 +7,7 @@ import uuid
 
 from app.database import get_db
 from app.models.order import Order, OrderStatusHistory, OrderItem
+from app.models.product import Product, ProductVariant
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.schemas.order import OrderOut, UpdateOrderStatus
@@ -244,7 +245,13 @@ async def delete_order(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_super_admin),
 ):
-    """Permanently delete an order. Super admin only."""
+    """Permanently delete an order. Super admin only.
+
+    Restores product stock if the order had already been confirmed (stock
+    was deducted at confirmation time). Does not restore stock if the order
+    was never confirmed (pending_payment) or was already returned (stock
+    already restored by the returns flow).
+    """
     result = await db.execute(
         select(Order)
         .options(selectinload(Order.items), selectinload(Order.status_history))
@@ -256,13 +263,48 @@ async def delete_order(
 
     order_number = order.order_number
 
+    # Determine whether stock was deducted for this order.
+    # Stock is decremented when an order reaches "confirmed" status.
+    # Stock is already restored when an order reaches "returned" status.
+    stock_was_deducted = order.status not in ("pending_payment",) and (
+        order.status in ("confirmed", "processing", "shipped", "out_for_delivery", "delivered", "refunded")
+        or any(h.new_status == "confirmed" for h in order.status_history)
+    )
+    stock_already_restored = order.status == "returned"
+
+    if stock_was_deducted and not stock_already_restored:
+        # Cache fetched objects to avoid redundant queries for same product/variant
+        variant_cache: dict = {}
+        product_cache: dict = {}
+
+        for item in order.items:
+            if item.variant_id and item.variant_id not in variant_cache:
+                vr = await db.execute(
+                    select(ProductVariant).where(ProductVariant.id == item.variant_id)
+                )
+                variant_cache[item.variant_id] = vr.scalar_one_or_none()
+
+            if item.product_id and item.product_id not in product_cache:
+                pr = await db.execute(
+                    select(Product).where(Product.id == item.product_id)
+                )
+                product_cache[item.product_id] = pr.scalar_one_or_none()
+
+            variant = variant_cache.get(item.variant_id)
+            product = product_cache.get(item.product_id)
+
+            if variant:
+                variant.stock_quantity += item.quantity
+            if product:
+                product.total_stock += item.quantity
+
     db.add(AuditLog(
         admin_id=admin.id,
         action="delete_order",
         entity_type="order",
         entity_id=str(order_id),
         old_value={"order_number": order_number, "status": order.status, "total": float(order.total)},
-        description=f"Deleted order {order_number}",
+        description=f"Deleted order {order_number} (stock_restored={stock_was_deducted and not stock_already_restored})",
     ))
 
     await db.delete(order)
