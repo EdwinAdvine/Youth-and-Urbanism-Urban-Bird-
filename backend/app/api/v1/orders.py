@@ -8,6 +8,7 @@ from typing import Optional
 import uuid
 
 from app.limiter import limiter
+from app.config import settings as _settings
 
 from app.database import get_db
 from app.models.order import Order, OrderItem, OrderStatusHistory
@@ -273,10 +274,11 @@ async def checkout(
     )
     full_order = result.scalar_one()
 
-    from app.config import settings as _settings
     total_str = format_ksh(full_order.total)
     customer_name = current_user.first_name + " " + current_user.last_name if current_user else data.shipping_full_name
     customer_email_for_admin = current_user.email if current_user else (data.guest_email or "")
+    order_url = f"{_settings.frontend_url}/account/orders/{full_order.order_number}"
+    admin_order_url = f"{_settings.frontend_url}/admin/orders/{full_order.id}"
 
     if data.payment_method == "cod":
         # COD is confirmed immediately — send confirmation now
@@ -292,8 +294,6 @@ async def checkout(
                 send_order_confirmation_sms(current_user.phone, full_order.order_number, total_str)
             )
         # Notify all admins
-        order_url = f"{_settings.frontend_url}/account/orders/{full_order.order_number}"
-        admin_order_url = f"{_settings.frontend_url}/admin/orders/{full_order.id}"
         admin_result = await db.execute(select(User).where(User.role.in_(["admin", "super_admin"]), User.is_active == True))
         admin_users = admin_result.scalars().all()
         for admin_user in admin_users:
