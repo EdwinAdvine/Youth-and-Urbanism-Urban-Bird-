@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [selectedRate, setSelectedRate] = useState<any>(null);
   const [guestEmail, setGuestEmail] = useState("");
   const [codEnabled, setCodEnabled] = useState(true);
+  const isPickup = selectedRate?.method === "pickup";
 
   useEffect(() => {
     api.get("/api/v1/admin/settings/public").then((r) => {
@@ -53,7 +54,8 @@ export default function CheckoutPage() {
 
   const fetchShippingRates = async (county: string) => {
     try {
-      const res = await api.get(`/api/v1/shipping/rates?county=${encodeURIComponent(county)}`);
+      const queryCounty = county || "Nairobi";
+      const res = await api.get(`/api/v1/shipping/rates?county=${encodeURIComponent(queryCounty)}`);
       setShippingRates(res.data);
       if (res.data.length) {
         setSelectedRate(res.data[0]);
@@ -80,9 +82,9 @@ export default function CheckoutPage() {
       const payload = {
         shipping_full_name: `${shippingData.first_name} ${shippingData.last_name}`.trim(),
         shipping_phone: shippingData.phone,
-        shipping_address_line_1: shippingData.address_line_1,
-        shipping_city: shippingData.city,
-        shipping_county: shippingData.county,
+        shipping_address_line_1: isPickup ? undefined : shippingData.address_line_1,
+        shipping_city: isPickup ? undefined : shippingData.city,
+        shipping_county: isPickup ? undefined : shippingData.county,
         shipping_rate_id: selectedRate?.id,
         payment_method: paymentMethod ?? "",
         coupon_code: couponCode || undefined,
@@ -196,14 +198,14 @@ export default function CheckoutPage() {
                 <Input label="Last Name" name="last_name" defaultValue={shippingData?.last_name || user?.last_name || ""} required />
               </div>
               <Input label="Phone" name="phone" type="tel" defaultValue={shippingData?.phone || user?.phone || ""} required />
-              <Input label="Delivery Address" name="address_line_1" defaultValue={shippingData?.address_line_1 || ""} placeholder="Where would you like us to deliver your goods?" required />
+              <Input label="Delivery Address" name="address_line_1" defaultValue={shippingData?.address_line_1 || ""} placeholder="Where would you like us to deliver your goods?" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <Input label="City / Town" name="city" defaultValue={shippingData?.city || ""} required />
+                <Input label="City / Town" name="city" defaultValue={shippingData?.city || ""} />
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700 font-manrope">County</label>
-                  <select name="county" defaultValue={shippingData?.county || ""} required
+                  <select name="county" defaultValue={shippingData?.county || ""}
                     className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-manrope focus:outline-none focus:ring-2 focus:ring-maroon-700">
-                    <option value="">Select county</option>
+                    <option value="">Select county (optional for pickup)</option>
                     {KENYAN_COUNTIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -297,10 +299,21 @@ export default function CheckoutPage() {
 
               {shippingData && (
                 <div className="text-sm font-manrope text-gray-600 bg-gray-50 rounded-lg p-4">
-                  <p className="font-semibold text-gray-900 mb-1">Shipping to:</p>
-                  <p>{shippingData.first_name} {shippingData.last_name} · {shippingData.phone}</p>
-                  <p>{shippingData.address_line_1}</p>
-                  <p>{shippingData.city}, {shippingData.county}</p>
+                  {isPickup ? (
+                    <>
+                      <p className="font-semibold text-gray-900 mb-1">Collection Details:</p>
+                      <p>{shippingData.first_name} {shippingData.last_name} · {shippingData.phone}</p>
+                      <p className="text-green-700 font-medium mt-1">Collect from Shop — Free</p>
+                      <p className="text-xs text-gray-400 mt-0.5">We'll contact you when your order is ready</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-gray-900 mb-1">Shipping to:</p>
+                      <p>{shippingData.first_name} {shippingData.last_name} · {shippingData.phone}</p>
+                      <p>{shippingData.address_line_1}</p>
+                      <p>{shippingData.city}, {shippingData.county}</p>
+                    </>
+                  )}
                 </div>
               )}
 

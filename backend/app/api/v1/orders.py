@@ -282,8 +282,10 @@ async def checkout(
 
     if data.payment_method == "cod":
         # COD is confirmed immediately — send confirmation now
-        track_url = f"{_settings.frontend_url}/track-order?order_number={full_order.order_number}"
         email_to = current_user.email if current_user else data.guest_email
+        track_url = f"{_settings.frontend_url}/track-order?order_number={full_order.order_number}"
+        if not current_user and email_to:
+            track_url += f"&email={email_to}"
         first_name = current_user.first_name if current_user else data.shipping_full_name.split()[0]
         if email_to:
             asyncio.create_task(

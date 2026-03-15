@@ -120,6 +120,33 @@ async def _apply_schema_changes() -> None:
         pass  # Table doesn't exist yet on a fresh DB — create_all handles it
 
 
+async def _seed_pickup_zone() -> None:
+    """Ensure a 'Shop Pickup' shipping zone with a free pickup rate exists."""
+    from app.database import AsyncSessionLocal
+    from app.models.shipping import ShippingZone, ShippingRate
+    from sqlalchemy import select
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ShippingZone).where(ShippingZone.name.ilike("%pickup%")))
+            existing = result.scalar_one_or_none()
+            if not existing:
+                zone = ShippingZone(name="Shop Pickup", counties=[], is_active=True)
+                db.add(zone)
+                await db.flush()
+                db.add(ShippingRate(
+                    zone_id=zone.id,
+                    method="pickup",
+                    price=0,
+                    free_above=None,
+                    estimated_days_min=0,
+                    estimated_days_max=0,
+                    is_active=True,
+                ))
+                await db.commit()
+    except Exception:
+        pass
+
+
 async def _flush_content_cache(redis) -> None:
     """
     Flush non-auth Redis keys on every startup so Coolify deployments
@@ -151,6 +178,7 @@ async def lifespan(app: FastAPI):
     await _seed_default_settings()
     await _seed_default_banners()
     await _patch_stale_settings()
+    await _seed_pickup_zone()
     redis = await get_redis()
     # Flush content cache so every Coolify deployment serves fresh data immediately
     await _flush_content_cache(redis)
@@ -259,7 +287,7 @@ from app.api.v1.admin import (
     dashboard, admin_orders, admin_products, admin_categories,
     admin_customers, admin_inventory, admin_coupons, admin_delivery,
     admin_reports, admin_returns, admin_staff, admin_settings, admin_banners,
-    admin_notifications, admin_content,
+    admin_notifications, admin_content, admin_shipping,
 )
 # Ensure all models are registered with Base (so create_all picks them up)
 from app.models import newsletter as _newsletter_model  # noqa: F401
@@ -303,6 +331,7 @@ app.include_router(admin_settings.router, prefix=f"{ADMIN}/settings", tags=["Adm
 app.include_router(admin_banners.router, prefix=f"{ADMIN}/banners", tags=["Admin - Banners"])
 app.include_router(admin_notifications.router, prefix=f"{ADMIN}/notifications", tags=["Admin - Notifications"])
 app.include_router(admin_content.router, prefix=f"{ADMIN}/content", tags=["Admin - Content"])
+app.include_router(admin_shipping.router, prefix=f"{ADMIN}/shipping", tags=["Admin - Shipping"])
 
 
 @app.get("/health", tags=["Health"])

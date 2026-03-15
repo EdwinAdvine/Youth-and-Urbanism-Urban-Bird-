@@ -110,6 +110,19 @@ async def update_coupon(
     return _coupon_dict(coupon)
 
 
+@router.delete("/{coupon_id}", status_code=204)
+async def delete_coupon(
+    coupon_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    result = await db.execute(select(Coupon).where(Coupon.id == coupon_id))
+    coupon = result.scalar_one_or_none()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    await db.delete(coupon)
+
+
 @router.patch("/{coupon_id}/deactivate")
 async def deactivate_coupon(
     coupon_id: uuid.UUID,

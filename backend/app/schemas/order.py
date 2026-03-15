@@ -9,10 +9,10 @@ import uuid
 class CheckoutRequest(BaseModel):
     shipping_full_name: str
     shipping_phone: str
-    shipping_address_line_1: str
+    shipping_address_line_1: str | None = None
     shipping_address_line_2: str | None = None
-    shipping_city: str
-    shipping_county: str
+    shipping_city: str | None = None
+    shipping_county: str | None = None
     shipping_rate_id: str | None = None
     payment_method: Literal["paystack", "mpesa", "stripe", "cod"]
     coupon_code: str | None = None
@@ -40,13 +40,12 @@ class CheckoutRequest(BaseModel):
 
     @field_validator("shipping_address_line_1")
     @classmethod
-    def validate_address(cls, v: str) -> str:
-        v = v.strip()
-        if not v:
-            raise ValueError("Address is required")
-        if len(v) > 200:
-            raise ValueError("Address must be 200 characters or fewer")
-        return v
+    def validate_address(cls, v: str | None) -> str | None:
+        if v is not None:
+            v = v.strip()
+            if len(v) > 200:
+                raise ValueError("Address must be 200 characters or fewer")
+        return v or None
 
     @field_validator("shipping_address_line_2")
     @classmethod
@@ -59,13 +58,12 @@ class CheckoutRequest(BaseModel):
 
     @field_validator("shipping_city", "shipping_county")
     @classmethod
-    def validate_location(cls, v: str) -> str:
-        v = v.strip()
-        if not v:
-            raise ValueError("This field is required")
-        if len(v) > 100:
-            raise ValueError("Must be 100 characters or fewer")
-        return v
+    def validate_location(cls, v: str | None) -> str | None:
+        if v is not None:
+            v = v.strip()
+            if len(v) > 100:
+                raise ValueError("Must be 100 characters or fewer")
+        return v or None
 
     @field_validator("customer_notes")
     @classmethod

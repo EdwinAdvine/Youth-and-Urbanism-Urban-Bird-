@@ -53,6 +53,7 @@ export default function AdminCouponsPage() {
   const [form, setForm] = useState<CouponForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchCoupons = async () => {
@@ -120,6 +121,20 @@ export default function AdminCouponsPage() {
       toast.error(typeof detail === 'string' ? detail : editingCoupon ? 'Failed to update coupon' : 'Failed to create coupon');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteCoupon = async (coupon: Coupon) => {
+    if (!window.confirm(`Delete coupon "${coupon.code}" permanently?`)) return;
+    try {
+      setDeletingId(coupon.id);
+      await api.delete(`/api/v1/admin/coupons/${coupon.id}`);
+      toast.success('Coupon deleted');
+      setCoupons((prev) => prev.filter((c) => c.id !== coupon.id));
+    } catch {
+      toast.error('Failed to delete coupon');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -265,11 +280,18 @@ export default function AdminCouponsPage() {
                         <button
                           onClick={() => deactivate(coupon)}
                           disabled={deactivatingId === coupon.id}
-                          className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 font-medium"
+                          className="text-xs border border-orange-200 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-50 disabled:opacity-50 font-medium"
                         >
                           {deactivatingId === coupon.id ? '...' : 'Deactivate'}
                         </button>
                       )}
+                      <button
+                        onClick={() => deleteCoupon(coupon)}
+                        disabled={deletingId === coupon.id}
+                        className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 font-medium"
+                      >
+                        {deletingId === coupon.id ? '...' : 'Delete'}
+                      </button>
                     </div>
                   </td>
                 </tr>

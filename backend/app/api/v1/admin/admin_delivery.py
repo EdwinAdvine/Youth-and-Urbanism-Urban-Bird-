@@ -15,7 +15,7 @@ router = APIRouter()
 
 class DispatchRequest(BaseModel):
     tracking_number: str
-    carrier: str
+    carrier: str | None = None
     estimated_delivery: date | None = None
     note: str | None = None
 
@@ -25,14 +25,14 @@ async def get_delivery_overview(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    statuses = ["processing", "shipped", "out_for_delivery", "delivered"]
+    statuses = ["confirmed", "processing", "shipped", "out_for_delivery", "delivered"]
     counts = {}
     for s in statuses:
         result = await db.execute(select(func.count(Order.id)).where(Order.status == s))
         counts[s] = result.scalar_one() or 0
 
     return {
-        "pending_dispatch": counts["processing"],
+        "pending_dispatch": counts["confirmed"] + counts["processing"],
         "in_transit": counts["shipped"] + counts["out_for_delivery"],
         "delivered_today": 0,  # Would need date filter
         "total_shipped": counts["shipped"],
@@ -45,13 +45,14 @@ async def get_delivery_overview(
 async def get_orders_to_dispatch(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
-    status: str = Query("processing"),
+    status: str = Query("confirmed,processing"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):
+    status_list = [s.strip() for s in status.split(",") if s.strip()]
     result = await db.execute(
         select(Order)
-        .where(Order.status == status)
+        .where(Order.status.in_(status_list))
         .order_by(Order.created_at.asc())
         .offset((page - 1) * limit)
         .limit(limit)
@@ -64,7 +65,7 @@ async def get_orders_to_dispatch(
             "status": o.status,
             "customer_name": o.shipping_full_name,
             "customer_phone": o.shipping_phone,
-            "address": f"{o.shipping_address_1}, {o.shipping_city}, {o.shipping_county}",
+            "address": f"{o.shipping_address_1 or ''}, {o.shipping_city or ''}, {o.shipping_county or ''}".strip(", "),
             "shipping_method": o.shipping_method,
             "total": float(o.total),
             "created_at": o.created_at.isoformat(),

@@ -78,4 +78,21 @@ async def get_shipping_rates(
         for rate in matching_zone.rates
         if rate.is_active
     ]
+
+    # Always append pickup rates from any zone whose name contains "pickup" (case-insensitive)
+    pickup_zone_ids = {zone.id for zone in zones if "pickup" in zone.name.lower()}
+    if matching_zone.id not in pickup_zone_ids:
+        for zone in zones:
+            if zone.id in pickup_zone_ids:
+                for rate in zone.rates:
+                    if rate.is_active:
+                        rates.append({
+                            "id": str(rate.id),
+                            "method": rate.method,
+                            "price": float(rate.price),
+                            "free_above": float(rate.free_above) if rate.free_above else None,
+                            "estimated_days_min": rate.estimated_days_min,
+                            "estimated_days_max": rate.estimated_days_max,
+                        })
+
     return rates

@@ -20,7 +20,7 @@ async def list_customers(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=1000),
 ):
-    query = select(User).where(User.role == "customer", User.is_deleted == False).order_by(User.created_at.desc())
+    query = select(User).where(User.is_deleted == False).order_by(User.created_at.desc())
     if search:
         query = query.where(
             User.email.ilike(f"%{search}%") | User.first_name.ilike(f"%{search}%") | User.last_name.ilike(f"%{search}%")
@@ -41,6 +41,7 @@ async def list_customers(
             "email": u.email,
             "name": u.full_name,
             "phone": u.phone,
+            "role": u.role,
             "is_active": u.is_active,
             "is_verified": u.is_verified,
             "order_count": order_count or 0,

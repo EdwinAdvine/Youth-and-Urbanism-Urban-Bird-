@@ -249,7 +249,6 @@ class PaystackInitRequest(BaseModel):
 async def _send_payment_confirmed_emails(order: Order, db: AsyncSession) -> None:
     """Send order confirmation to customer and new-order notice to all admins after payment."""
     total_str = format_ksh(order.total)
-    track_url = f"{settings.frontend_url}/track-order?order_number={order.order_number}"
     admin_order_url = f"{settings.frontend_url}/admin/orders/{order.id}"
 
     # Resolve customer email / name
@@ -265,6 +264,10 @@ async def _send_payment_confirmed_emails(order: Order, db: AsyncSession) -> None
             phone = user.phone
     if not email_to and order.guest_email:
         email_to = order.guest_email
+
+    track_url = f"{settings.frontend_url}/track-order?order_number={order.order_number}"
+    if not order.user_id and email_to:
+        track_url += f"&email={email_to}"
 
     customer_email_for_admin = email_to or ""
     customer_name = order.shipping_full_name or first_name

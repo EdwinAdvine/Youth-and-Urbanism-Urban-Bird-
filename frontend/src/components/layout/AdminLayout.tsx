@@ -34,6 +34,7 @@ const navItems = [
   { to: "/admin/categories", icon: FolderOpen, label: "Categories" },
   { to: "/admin/inventory", icon: Warehouse, label: "Inventory" },
   { to: "/admin/delivery", icon: Truck, label: "Delivery" },
+  { to: "/admin/shipping", icon: Truck, label: "Shipping Rates" },
   { to: "/admin/customers", icon: Users, label: "Customers" },
   { to: "/admin/coupons", icon: Tag, label: "Coupons" },
   { to: "/admin/analytics", icon: BarChart2, label: "Analytics" },

@@ -4,10 +4,11 @@ import toast from 'react-hot-toast';
 import { useSEO } from "../../hooks/useSEO";
 
 interface Customer {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone: string;
+  role: string;
   order_count: number;
   total_spent: number;
   is_active: boolean;
@@ -19,7 +20,7 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -131,6 +132,7 @@ export default function AdminCustomersPage() {
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Customer</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Phone</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Role</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Orders</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Total Spent</th>
                   <th className="text-left px-4 py-3 font-semibold text-gray-600">Joined</th>
@@ -148,6 +150,11 @@ export default function AdminCustomersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{customer.phone || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${customer.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : customer.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {customer.role?.replace('_', ' ') || 'customer'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-gray-700 font-medium">{customer.order_count ?? 0}</td>
                     <td className="px-4 py-3 text-gray-800 font-medium">
                       {formatCurrency(customer.total_spent ?? 0)}
@@ -176,7 +183,7 @@ export default function AdminCustomersPage() {
 
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                       {search ? 'No customers match your search' : 'No customers found'}
                     </td>
                   </tr>

@@ -10,12 +10,13 @@ interface DeliveryOverview {
 }
 
 interface DeliveryOrder {
-  id: number;
+  id: string;
   order_number: string;
   customer_name: string;
-  customer_address: string;
+  customer_phone: string;
+  address: string;
   status: string;
-  items_count: number;
+  shipping_method: string;
   total: number;
   created_at: string;
 }
@@ -25,8 +26,8 @@ export default function AdminDeliveryPage() {
   const [overview, setOverview] = useState<DeliveryOverview>({ pending_dispatch: 0, in_transit: 0, delivered_today: 0 });
   const [orders, setOrders] = useState<DeliveryOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [trackingInputs, setTrackingInputs] = useState<Record<number, string>>({});
-  const [dispatchingId, setDispatchingId] = useState<number | null>(null);
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -46,15 +47,14 @@ export default function AdminDeliveryPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const dispatch = async (orderId: number) => {
+  const dispatch = async (orderId: string) => {
     const tracking = trackingInputs[orderId]?.trim();
-    if (!tracking) {
-      toast.error('Please enter a tracking number');
-      return;
-    }
     try {
       setDispatchingId(orderId);
-      await api.patch(`/api/v1/admin/delivery/orders/${orderId}/dispatch`, { tracking_number: tracking });
+      await api.patch(`/api/v1/admin/delivery/orders/${orderId}/dispatch`, {
+        tracking_number: tracking || 'N/A',
+        carrier: 'Manual',
+      });
       toast.success('Order dispatched successfully');
       setTrackingInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
       fetchData();
@@ -151,7 +151,7 @@ export default function AdminDeliveryPage() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Customer</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Address</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Items</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600">Method</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Total</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
                 <th className="text-right px-4 py-3 font-semibold text-gray-600">Dispatch</th>
@@ -164,15 +164,15 @@ export default function AdminDeliveryPage() {
                     #{order.order_number}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900">{order.customer_name}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={order.customer_address}>
-                    {order.customer_address}
+                  <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate" title={order.address}>
+                    {order.address || order.shipping_method}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusBadge(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{order.items_count}</td>
+                  <td className="px-4 py-3 text-gray-600">{order.shipping_method || '—'}</td>
                   <td className="px-4 py-3 text-gray-800 font-medium">{formatCurrency(order.total)}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(order.created_at)}</td>
                   <td className="px-4 py-3">
