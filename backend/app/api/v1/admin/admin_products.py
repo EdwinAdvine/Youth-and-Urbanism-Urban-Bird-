@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
@@ -313,8 +313,25 @@ async def update_variant(
     if not variant:
         raise HTTPException(status_code=404, detail="Variant not found")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updated_fields = data.model_dump(exclude_unset=True)
+    for field, value in updated_fields.items():
         setattr(variant, field, value)
+
+    # Recalculate product total_stock when stock_quantity changes
+    if "stock_quantity" in updated_fields:
+        await db.flush()  # ensure the updated stock_quantity is visible to the SUM query
+        result = await db.execute(
+            select(func.sum(ProductVariant.stock_quantity)).where(
+                ProductVariant.product_id == product_id
+            )
+        )
+        product_result = await db.execute(
+            select(Product).where(Product.id == product_id)
+        )
+        product = product_result.scalar_one_or_none()
+        if product:
+            product.total_stock = result.scalar() or 0
+
     return variant
 
 

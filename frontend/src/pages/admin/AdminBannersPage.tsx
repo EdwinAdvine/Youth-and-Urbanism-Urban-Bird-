@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, GripVertical, Edit2, Trash2, X, Eye, EyeOff, ImagePlus, ExternalLink } from "lucide-react";
+import { Plus, GripVertical, Edit2, Trash2, X, Eye, EyeOff, ImagePlus, ExternalLink, Monitor } from "lucide-react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 import { useSEO } from "../../hooks/useSEO";
@@ -60,11 +60,66 @@ function BannerPreview({ form }: { form: typeof EMPTY_FORM }) {
   );
 }
 
+/** Full-screen banner preview overlay */
+function BannerFullPreview({ banner, onClose }: { banner: any; onClose: () => void }) {
+  const form = {
+    image_url: banner.image_url ?? "",
+    title: banner.title ?? "",
+    subtitle: banner.subtitle ?? "",
+    cta_text: banner.cta_text ?? "",
+    overlay_color: banner.overlay_color ?? "rgba(0,0,0,0.35)",
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/90" onClick={onClose}>
+      <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3">
+          <span className="text-white font-manrope font-semibold text-sm">{banner.title}</span>
+          {!banner.is_active && (
+            <span className="text-[10px] font-manrope font-semibold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
+              Inactive — not visible to customers
+            </span>
+          )}
+        </div>
+        <button onClick={onClose} className="text-white/70 hover:text-white p-1">
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="relative w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: "16/7" }}>
+          {form.image_url ? (
+            <img src={form.image_url} alt={form.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-500">
+              <ImagePlus size={40} />
+            </div>
+          )}
+          <div className="absolute inset-0" style={{ background: form.overlay_color }} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+            {form.subtitle && (
+              <p className="text-white/70 text-sm uppercase tracking-widest mb-2 drop-shadow">{form.subtitle}</p>
+            )}
+            {form.title && (
+              <p className="text-white font-bold text-3xl leading-tight drop-shadow-lg">{form.title}</p>
+            )}
+            {form.cta_text && (
+              <span className="mt-5 inline-block bg-white text-gray-900 text-sm font-semibold rounded-full px-6 py-2 shadow-lg">
+                {form.cta_text}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <p className="text-center text-white/30 text-xs font-manrope pb-4">Click anywhere outside to close</p>
+    </div>
+  );
+}
+
 export default function AdminBannersPage() {
   useSEO({ title: "Banners", noindex: true });
   const [banners, setBanners] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [previewBanner, setPreviewBanner] = useState<any>(null);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
@@ -258,6 +313,13 @@ export default function AdminBannersPage() {
                 <span className="text-xs font-manrope text-gray-400 flex-shrink-0">#{b.display_order}</span>
                 <div className="flex items-center gap-1">
                   <button
+                    onClick={() => setPreviewBanner(b)}
+                    title="Full preview"
+                    className="p-1.5 text-gray-400 hover:text-maroon-700 rounded"
+                  >
+                    <Monitor size={15} />
+                  </button>
+                  <button
                     onClick={() => handleToggle(b)}
                     title={b.is_active ? "Deactivate" : "Activate"}
                     className={`p-1.5 rounded ${b.is_active ? "text-green-500 hover:text-gray-400" : "text-gray-300 hover:text-green-500"}`}
@@ -275,6 +337,11 @@ export default function AdminBannersPage() {
             );
           })}
         </div>
+      )}
+
+      {/* ── Full-screen preview ── */}
+      {previewBanner && (
+        <BannerFullPreview banner={previewBanner} onClose={() => setPreviewBanner(null)} />
       )}
 
       {/* ── Modal ── */}

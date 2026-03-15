@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, delete as sql_delete
 from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 
 from app.database import get_db
 from app.models.order import Order, OrderStatusHistory, OrderItem
+from app.models.notification import Notification
 from app.models.product import Product, ProductVariant
 from app.models.user import User
 from app.models.audit_log import AuditLog
@@ -306,6 +307,18 @@ async def delete_order(
         old_value={"order_number": order_number, "status": order.status, "total": float(order.total)},
         description=f"Deleted order {order_number} (stock_restored={stock_was_deducted and not stock_already_restored})",
     ))
+
+    # Delete orphaned notifications referencing this order (no FK cascade covers these)
+    await db.execute(
+        sql_delete(Notification).where(
+            Notification.data["order_id"].astext == str(order_id)
+        )
+    )
+    await db.execute(
+        sql_delete(Notification).where(
+            Notification.data["order_number"].astext == order_number
+        )
+    )
 
     await db.delete(order)
     return {"message": f"Order {order_number} deleted successfully"}

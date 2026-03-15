@@ -1,9 +1,21 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSEO } from "../hooks/useSEO";
+import { useAuthStore } from "../store/authStore";
+import api from "../services/api";
 
-const FAQS = [
+interface FAQItem {
+  q: string;
+  a: string;
+}
+
+interface FAQCategory {
+  category: string;
+  items: FAQItem[];
+}
+
+const DEFAULT_FAQS: FAQCategory[] = [
   {
     category: "Orders & Payments",
     items: [
@@ -111,7 +123,7 @@ const FAQS = [
   },
 ];
 
-function FAQItem({ q, a }: { q: string; a: string }) {
+function FAQItemComp({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="border-b border-gray-100 last:border-0">
@@ -137,11 +149,24 @@ export default function FAQPage() {
     description: "Find answers to common questions about Urban Bird orders, shipping, returns, payments, and more.",
   });
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [faqs, setFaqs] = useState<FAQCategory[]>(DEFAULT_FAQS);
+
+  useEffect(() => {
+    api
+      .get("/api/v1/content/faq")
+      .then((r) => {
+        if (r.data?.categories?.length) setFaqs(r.data.categories);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container-custom max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="relative text-center mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold font-lexend text-gray-900">Frequently Asked Questions</h1>
           <p className="text-gray-500 font-manrope mt-3 text-sm sm:text-base">
             Can't find what you're looking for?{" "}
@@ -154,18 +179,27 @@ export default function FAQPage() {
             </a>
             .
           </p>
+          {isAdmin && (
+            <Link
+              to="/admin/content/faq"
+              className="absolute top-0 right-0 inline-flex items-center gap-1.5 text-xs font-manrope font-semibold text-maroon-700 bg-maroon-50 border border-maroon-200 px-3 py-1.5 rounded-lg hover:bg-maroon-100 transition-colors"
+            >
+              <Pencil size={13} />
+              Edit Page
+            </Link>
+          )}
         </div>
 
         {/* FAQ Sections */}
         <div className="space-y-6">
-          {FAQS.map((section) => (
+          {faqs.map((section) => (
             <div key={section.category} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
                 <h2 className="text-base font-bold font-lexend text-gray-900">{section.category}</h2>
               </div>
               <div className="px-6">
                 {section.items.map((item) => (
-                  <FAQItem key={item.q} q={item.q} a={item.a} />
+                  <FAQItemComp key={item.q} q={item.q} a={item.a} />
                 ))}
               </div>
             </div>

@@ -34,7 +34,9 @@ interface Props {
 
 export default function NotificationBell({ isAdmin = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 320 });
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuthStore();
 
   const {
@@ -82,6 +84,19 @@ export default function NotificationBell({ isAdmin = false }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const margin = 8;
+      const dropW = Math.min(320, window.innerWidth - margin * 2);
+      // Align right edge of dropdown with right edge of button, but clamp to viewport
+      const rightAligned = rect.right - dropW;
+      const left = Math.max(margin, rightAligned);
+      setDropdownPos({ top: rect.bottom + margin, left, width: dropW });
+    }
+    setOpen((v) => !v);
+  };
+
   const handleItemClick = async (n: Notification) => {
     if (!n.is_read) {
       if (isAdmin) await markAdminRead(n.id);
@@ -99,7 +114,8 @@ export default function NotificationBell({ isAdmin = false }: Props) {
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="relative p-2 text-gray-600 hover:text-maroon-700 transition-colors rounded-lg hover:bg-gray-50"
         title="Notifications"
       >
@@ -112,7 +128,10 @@ export default function NotificationBell({ isAdmin = false }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+        <div
+          className="fixed bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden"
+          style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="text-sm font-semibold text-gray-900 font-manrope">Notifications</span>
             {count > 0 && (
@@ -130,7 +149,7 @@ export default function NotificationBell({ isAdmin = false }: Props) {
               No notifications yet
             </div>
           ) : (
-            <ul className="max-h-72 overflow-y-auto divide-y divide-gray-50">
+            <ul className="max-h-[min(288px,calc(100vh-8rem))] overflow-y-auto divide-y divide-gray-50">
               {items.map((n) => (
                 <li key={n.id}>
                   <button

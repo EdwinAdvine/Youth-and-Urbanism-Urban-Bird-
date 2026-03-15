@@ -1,8 +1,16 @@
-import { FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FileText, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSEO } from "../hooks/useSEO";
+import { useAuthStore } from "../store/authStore";
+import api from "../services/api";
 
-const SECTIONS = [
+interface TermsSection {
+  title: string;
+  body: string[];
+}
+
+const DEFAULT_SECTIONS: TermsSection[] = [
   {
     title: "1. Acceptance of Terms",
     body: [
@@ -87,11 +95,24 @@ export default function TermsPage() {
     description: "Read Urban Bird's Terms of Service governing the use of our website and purchase of our products.",
   });
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [sections, setSections] = useState<TermsSection[]>(DEFAULT_SECTIONS);
+
+  useEffect(() => {
+    api
+      .get("/api/v1/content/terms")
+      .then((r) => {
+        if (r.data?.sections?.length) setSections(r.data.sections);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container-custom max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="relative text-center mb-10">
           <div className="w-14 h-14 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText size={24} className="text-maroon-700" />
           </div>
@@ -99,11 +120,20 @@ export default function TermsPage() {
           <p className="text-gray-500 font-manrope mt-3 text-sm sm:text-base max-w-xl mx-auto">
             Please read these terms carefully before using our website or making a purchase.
           </p>
+          {isAdmin && (
+            <Link
+              to="/admin/content/terms"
+              className="absolute top-0 right-0 inline-flex items-center gap-1.5 text-xs font-manrope font-semibold text-maroon-700 bg-maroon-50 border border-maroon-200 px-3 py-1.5 rounded-lg hover:bg-maroon-100 transition-colors"
+            >
+              <Pencil size={13} />
+              Edit Page
+            </Link>
+          )}
         </div>
 
         {/* Sections */}
         <div className="space-y-5">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
                 <h2 className="text-base font-bold font-lexend text-gray-900">{section.title}</h2>

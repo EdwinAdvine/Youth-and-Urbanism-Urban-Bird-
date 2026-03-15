@@ -7,7 +7,7 @@ import uuid
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, delete
 
 from app.models.notification import Notification
 
@@ -133,3 +133,29 @@ async def mark_all_read(
     await db.execute(
         update(Notification).where(where).values(is_read=True)
     )
+
+
+async def delete_admin_notification(
+    db: AsyncSession,
+    notification_id: uuid.UUID,
+) -> bool:
+    """Delete a single admin notification (user_id IS NULL). Returns True if found."""
+    result = await db.execute(
+        select(Notification).where(
+            Notification.id == notification_id,
+            Notification.user_id.is_(None),
+        )
+    )
+    notif = result.scalar_one_or_none()
+    if not notif:
+        return False
+    await db.delete(notif)
+    return True
+
+
+async def delete_all_admin_notifications(db: AsyncSession) -> int:
+    """Delete all admin notifications. Returns count deleted."""
+    result = await db.execute(
+        delete(Notification).where(Notification.user_id.is_(None))
+    )
+    return result.rowcount

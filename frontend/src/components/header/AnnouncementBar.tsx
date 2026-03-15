@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import api from "../../services/api";
 
-const MESSAGES = [
+const FALLBACK_MESSAGES = [
   {
     text: "Free delivery on orders above KSh 5,000",
     link: "/shop",
@@ -28,32 +29,45 @@ const MESSAGES = [
 const INTERVAL_MS = 4000;
 
 export default function AnnouncementBar() {
+  const [messages, setMessages] = useState(FALLBACK_MESSAGES);
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
+    api
+      .get("/api/v1/admin/settings/public")
+      .then((r) => {
+        const msgs = r.data?.announcement_messages;
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          setMessages(msgs);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setFading(true);
       setTimeout(() => {
-        setIndex((i) => (i + 1) % MESSAGES.length);
+        setIndex((i) => (i + 1) % messages.length);
         setFading(false);
       }, 300);
     }, INTERVAL_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [messages.length]);
 
   if (!visible) return null;
 
   const goTo = (next: number) => {
     setFading(true);
     setTimeout(() => {
-      setIndex(((next % MESSAGES.length) + MESSAGES.length) % MESSAGES.length);
+      setIndex(((next % messages.length) + messages.length) % messages.length);
       setFading(false);
     }, 200);
   };
 
-  const msg = MESSAGES[index];
+  const msg = messages[index];
 
   return (
     <div className="bg-maroon-700 text-white text-xs font-manrope relative flex items-center justify-center px-8 py-2 select-none">

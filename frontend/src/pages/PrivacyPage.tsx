@@ -1,7 +1,16 @@
-import { Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Shield, Pencil } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useSEO } from "../hooks/useSEO";
+import { useAuthStore } from "../store/authStore";
+import api from "../services/api";
 
-const SECTIONS = [
+interface PolicySection {
+  title: string;
+  body: string[];
+}
+
+const DEFAULT_SECTIONS: PolicySection[] = [
   {
     title: "Information We Collect",
     body: [
@@ -71,11 +80,24 @@ export default function PrivacyPage() {
     description: "Learn how Urban Bird collects, uses, and protects your personal information.",
   });
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [sections, setSections] = useState<PolicySection[]>(DEFAULT_SECTIONS);
+
+  useEffect(() => {
+    api
+      .get("/api/v1/content/privacy")
+      .then((r) => {
+        if (r.data?.sections?.length) setSections(r.data.sections);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container-custom max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="relative text-center mb-10">
           <div className="w-14 h-14 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield size={24} className="text-maroon-700" />
           </div>
@@ -83,11 +105,20 @@ export default function PrivacyPage() {
           <p className="text-gray-500 font-manrope mt-3 text-sm sm:text-base max-w-xl mx-auto">
             We respect your privacy and are committed to protecting your personal data.
           </p>
+          {isAdmin && (
+            <Link
+              to="/admin/content/privacy"
+              className="absolute top-0 right-0 inline-flex items-center gap-1.5 text-xs font-manrope font-semibold text-maroon-700 bg-maroon-50 border border-maroon-200 px-3 py-1.5 rounded-lg hover:bg-maroon-100 transition-colors"
+            >
+              <Pencil size={13} />
+              Edit Page
+            </Link>
+          )}
         </div>
 
         {/* Sections */}
         <div className="space-y-5">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
                 <h2 className="text-base font-bold font-lexend text-gray-900">{section.title}</h2>

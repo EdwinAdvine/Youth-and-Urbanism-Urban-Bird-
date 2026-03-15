@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       const user = useAuthStore.getState().user;
-      if (user && ["admin", "super_admin"].includes(user.role)) {
+      if (user && user.role === "admin") {
         navigate("/admin", { replace: true });
         return;
       }

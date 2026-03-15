@@ -35,7 +35,11 @@ export default function StorefrontLayout() {
       <NewsletterPopup />
 
       {/* WhatsApp floating button */}
-      <div className="fixed bottom-[calc(3.75rem+0.75rem)] right-4 lg:bottom-6 lg:right-6 z-[60] flex flex-col items-end gap-2">
+      <div
+        className="fixed bottom-[calc(3.75rem+0.75rem)] right-4 lg:bottom-6 lg:right-6 z-[60] flex flex-col items-end gap-2"
+        onMouseEnter={() => setWaOpen(true)}
+        onMouseLeave={() => setWaOpen(false)}
+      >
         {waOpen && (
           <div className="bg-white rounded-xl shadow-xl p-3 flex flex-col gap-2 mb-1 min-w-[180px]">
             <p className="text-xs font-semibold text-gray-500 px-1">Chat with us</p>
@@ -45,6 +49,7 @@ export default function StorefrontLayout() {
                 href={`https://wa.me/${number}?text=${WA_MESSAGE}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setWaOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 transition-colors text-sm font-medium text-gray-800"
               >
                 <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: "#25D366" }}>
@@ -56,7 +61,6 @@ export default function StorefrontLayout() {
           </div>
         )}
         <button
-          onClick={() => setWaOpen((v) => !v)}
           aria-label="Chat with us on WhatsApp"
           className="rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
           style={{ backgroundColor: "#25D366", width: 52, height: 52 }}

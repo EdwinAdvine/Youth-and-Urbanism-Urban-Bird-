@@ -45,4 +45,12 @@ export const notificationService = {
   markAdminAllRead: async (): Promise<void> => {
     await api.post("/api/v1/admin/notifications/read-all");
   },
+
+  deleteAdminNotification: async (id: string): Promise<void> => {
+    await api.delete(`/api/v1/admin/notifications/${id}`);
+  },
+
+  deleteAllAdminNotifications: async (): Promise<void> => {
+    await api.delete("/api/v1/admin/notifications");
+  },
 };

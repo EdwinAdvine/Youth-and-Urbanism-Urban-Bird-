@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import AppRoutes from "./routes";
+import ScrollToTop from "./components/ui/ScrollToTop";
 import { useAuthStore } from "./store/authStore";
 import { useCartStore } from "./store/cartStore";
 import { useWishlistStore } from "./store/wishlistStore";
@@ -25,6 +26,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppRoutes />
       <Toaster
         position="top-right"

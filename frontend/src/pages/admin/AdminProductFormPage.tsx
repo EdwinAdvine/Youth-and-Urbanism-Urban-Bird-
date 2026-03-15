@@ -211,7 +211,7 @@ export default function AdminProductFormPage() {
             <div className="grid grid-cols-4 gap-3">
               {existingImages.map((img) => (
                 <div key={img.id} className="aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
-                  <img src={img.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                  <img src={img.thumbnail_url || img.url} alt="" className="w-full h-full object-cover" />
                 </div>
               ))}
               {images.map((img, i) => (

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Bell, Package, ShoppingBag, CheckCheck, Info } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Package, ShoppingBag, CheckCheck, Info, Trash2 } from "lucide-react";
 import { useNotificationStore } from "../../store/notificationStore";
 import type { Notification } from "../../types";
 import { useSEO } from "../../hooks/useSEO";
@@ -23,6 +23,7 @@ function formatDate(iso: string): string {
 
 export default function AdminNotificationsPage() {
   useSEO({ title: "Notifications", noindex: true });
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const {
     adminNotifications,
     adminUnreadCount,
@@ -32,6 +33,8 @@ export default function AdminNotificationsPage() {
     fetchAdminNotifications,
     markAdminRead,
     markAdminAllRead,
+    deleteAdminNotification,
+    deleteAllAdminNotifications,
   } = useNotificationStore();
 
   useEffect(() => {
@@ -40,6 +43,16 @@ export default function AdminNotificationsPage() {
 
   const handleMark = async (n: Notification) => {
     if (!n.is_read) await markAdminRead(n.id);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await deleteAdminNotification(id);
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllAdminNotifications();
+    setConfirmDeleteAll(false);
   };
 
   return (
@@ -54,14 +67,44 @@ export default function AdminNotificationsPage() {
             </span>
           )}
         </div>
-        {adminUnreadCount > 0 && (
-          <button
-            onClick={() => markAdminAllRead()}
-            className="text-sm text-maroon-700 hover:text-maroon-800 font-manrope font-medium"
-          >
-            Mark all read
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {adminUnreadCount > 0 && (
+            <button
+              onClick={() => markAdminAllRead()}
+              className="text-sm text-maroon-700 hover:text-maroon-800 font-manrope font-medium"
+            >
+              Mark all read
+            </button>
+          )}
+          {adminNotifications.length > 0 && (
+            confirmDeleteAll ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-manrope">Delete all?</span>
+                <button
+                  onClick={handleDeleteAll}
+                  className="text-xs text-red-600 hover:text-red-700 font-manrope font-medium"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteAll(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700 font-manrope"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDeleteAll(true)}
+                className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 font-manrope"
+                title="Delete all notifications"
+              >
+                <Trash2 size={14} />
+                Delete all
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {isAdminLoading ? (
@@ -81,7 +124,7 @@ export default function AdminNotificationsPage() {
             <li
               key={n.id}
               onClick={() => handleMark(n)}
-              className={`flex gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${
+              className={`flex gap-4 p-4 rounded-xl border cursor-pointer transition-colors group ${
                 !n.is_read
                   ? "border-maroon-200 bg-maroon-50 hover:bg-maroon-100"
                   : "border-gray-100 bg-white hover:bg-gray-50"
@@ -97,9 +140,18 @@ export default function AdminNotificationsPage() {
                 <p className="text-sm text-gray-500 font-manrope mt-0.5">{n.message}</p>
                 <p className="text-xs text-gray-400 font-manrope mt-1">{formatDate(n.created_at)}</p>
               </div>
-              {!n.is_read && (
-                <span className="w-2 h-2 rounded-full bg-maroon-700 flex-shrink-0 mt-2" />
-              )}
+              <div className="flex items-start gap-2 flex-shrink-0">
+                {!n.is_read && (
+                  <span className="w-2 h-2 rounded-full bg-maroon-700 mt-2" />
+                )}
+                <button
+                  onClick={(e) => handleDelete(e, n.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all rounded"
+                  title="Delete notification"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </li>
           ))}
         </ul>

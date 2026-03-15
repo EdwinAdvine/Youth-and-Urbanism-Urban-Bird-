@@ -31,6 +31,22 @@ from app.models.return_request import ReturnRequest
 from pydantic import BaseModel as _BaseModel
 import asyncio
 
+"""
+orders.py — Order management endpoints for Urban Bird.
+
+Key design decisions:
+  - Orders are identified by `order_number` (e.g. UB-20260315-12345), never by UUID in URLs.
+  - Guest orders are secured with a (guest_email + guest_token) pair issued at checkout.
+  - COD orders are confirmed immediately; online-payment orders stay "pending_payment"
+    until the payment gateway confirms.
+  - Stock handling:
+      COD      → stock_quantity decremented at checkout (immediate)
+      Online   → reserved_quantity incremented at checkout;
+                 actual deduction happens in payments.py after confirmation
+  - All email/SMS sends are non-blocking (asyncio.create_task) so they never
+    delay the checkout response to the customer.
+"""
+
 router = APIRouter()
 
 VALID_STATUSES = [
@@ -64,8 +80,10 @@ def _generate_order_number() -> str:
     return f"UB-{today}-{suffix}"
 
 
+@limiter.limit("10/minute")
 @router.post("/checkout", response_model=OrderOut, status_code=201)
 async def checkout(
+    request: Request,
     data: CheckoutRequest,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_user),

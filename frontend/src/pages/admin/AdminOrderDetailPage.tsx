@@ -57,8 +57,8 @@ export default function AdminOrderDetailPage() {
       await api.delete(`/api/v1/admin/orders/${id}`);
       toast.success("Order deleted.");
       navigate("/admin/orders");
-    } catch {
-      toast.error("Failed to delete order.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to delete order.");
       setDeleteConfirm(false);
     } finally {
       setIsDeleting(false);

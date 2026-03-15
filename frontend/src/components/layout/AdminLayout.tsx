@@ -20,6 +20,7 @@ import {
   Mail,
   Bell,
   MessageSquare,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useNotificationStore } from "../../store/notificationStore";
@@ -41,6 +42,7 @@ const navItems = [
   { to: "/admin/newsletter", icon: Mail, label: "Newsletter" },
   { to: "/admin/banners", icon: Image, label: "Banners" },
   { to: "/admin/notifications", icon: Bell, label: "Notifications" },
+  { to: "/admin/content/faq", icon: FileText, label: "Content" },
 ];
 
 const superAdminItems = [
@@ -77,7 +79,11 @@ export default function AdminLayout() {
   };
 
   const NavLink = ({ to, icon: Icon, label, exact }: { to: string; icon: any; label: string; exact?: boolean }) => {
-    const isActive = exact ? pathname === to : pathname.startsWith(to);
+    const isActive = exact
+      ? pathname === to
+      : to === "/admin/content/faq"
+        ? pathname.startsWith("/admin/content")
+        : pathname.startsWith(to);
     return (
       <Link
         to={to}

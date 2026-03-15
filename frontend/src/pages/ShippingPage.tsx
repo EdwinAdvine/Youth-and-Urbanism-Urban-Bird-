@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Truck, MapPin, Clock, Package, CheckCircle, Loader2 } from "lucide-react";
+import { Truck, MapPin, Clock, Package, CheckCircle, Loader2, Pencil } from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "../services/api";
 import { formatKSh } from "../utils/formatPrice";
 import { useSEO } from "../hooks/useSEO";
+import { useAuthStore } from "../store/authStore";
 
 interface ShippingRate {
   method: string;
@@ -19,6 +21,36 @@ interface ShippingZone {
   rates: ShippingRate[];
 }
 
+interface ShippingHighlight {
+  title: string;
+  desc: string;
+}
+
+interface ShippingContent {
+  highlights: ShippingHighlight[];
+  important_info: string[];
+  cod_text: string;
+}
+
+const DEFAULT_CONTENT: ShippingContent = {
+  highlights: [
+    { title: "Nationwide Delivery", desc: "All 47 counties in Kenya" },
+    { title: "Fast Dispatch", desc: "Orders packed within 24 hours" },
+    { title: "Free Delivery", desc: "On orders above KSh 5,000 in Nairobi" },
+  ],
+  important_info: [
+    "Orders placed before 12:00 PM (EAT) on business days are dispatched the same day.",
+    "Delivery times are estimates and may vary during public holidays and peak seasons.",
+    "You'll receive a notification when your order is shipped, including a tracking number if available.",
+    "Our delivery team will call you before delivering. Please ensure your phone is reachable.",
+    "If you're not available at the time of delivery, our courier will attempt re-delivery or contact you to arrange an alternative.",
+  ],
+  cod_text:
+    "COD is available for eligible locations. Pay in cash when your order arrives. Please have the exact amount ready — our riders do not carry change. COD availability is confirmed at checkout based on your delivery location.",
+};
+
+const HIGHLIGHT_ICONS = [Truck, Clock, CheckCircle];
+
 function DeliveryDays({ min, max }: { min: number; max: number }) {
   if (min === max) return <span>{min} business day{min !== 1 ? "s" : ""}</span>;
   return <span>{min}–{max} business days</span>;
@@ -30,8 +62,12 @@ export default function ShippingPage() {
     description: "Learn about Urban Bird's shipping rates and delivery times across Kenya.",
   });
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+
   const [zones, setZones] = useState<ShippingZone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [content, setContent] = useState<ShippingContent>(DEFAULT_CONTENT);
 
   useEffect(() => {
     api
@@ -39,13 +75,20 @@ export default function ShippingPage() {
       .then((r) => setZones(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    api
+      .get("/api/v1/content/shipping")
+      .then((r) => {
+        if (r.data?.highlights?.length) setContent(r.data);
+      })
+      .catch(() => {});
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container-custom max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="relative text-center mb-10">
           <div className="w-14 h-14 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Truck size={24} className="text-maroon-700" />
           </div>
@@ -53,25 +96,33 @@ export default function ShippingPage() {
           <p className="text-gray-500 font-manrope mt-3 text-sm sm:text-base max-w-xl mx-auto">
             We deliver to all counties in Kenya. Rates and delivery times vary by location.
           </p>
+          {isAdmin && (
+            <Link
+              to="/admin/content/shipping"
+              className="absolute top-0 right-0 inline-flex items-center gap-1.5 text-xs font-manrope font-semibold text-maroon-700 bg-maroon-50 border border-maroon-200 px-3 py-1.5 rounded-lg hover:bg-maroon-100 transition-colors"
+            >
+              <Pencil size={13} />
+              Edit Page
+            </Link>
+          )}
         </div>
 
         {/* Highlights */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {[
-            { icon: Truck, title: "Nationwide Delivery", desc: "All 47 counties in Kenya" },
-            { icon: Clock, title: "Fast Dispatch", desc: "Orders packed within 24 hours" },
-            { icon: CheckCircle, title: "Free Delivery", desc: "On orders above KSh 5,000 in Nairobi" },
-          ].map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-start gap-4">
-              <div className="w-10 h-10 bg-maroon-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Icon size={18} className="text-maroon-700" />
+          {content.highlights.map(({ title, desc }, idx) => {
+            const Icon = HIGHLIGHT_ICONS[idx] ?? Truck;
+            return (
+              <div key={title} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-start gap-4">
+                <div className="w-10 h-10 bg-maroon-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon size={18} className="text-maroon-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold font-lexend text-gray-900">{title}</p>
+                  <p className="text-xs font-manrope text-gray-500 mt-0.5">{desc}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold font-lexend text-gray-900">{title}</p>
-                <p className="text-xs font-manrope text-gray-500 mt-0.5">{desc}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Shipping Rates Table */}
@@ -145,13 +196,7 @@ export default function ShippingPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
           <h2 className="text-base font-bold font-lexend text-gray-900 mb-4">Important Information</h2>
           <ul className="space-y-3">
-            {[
-              "Orders placed before 12:00 PM (EAT) on business days are dispatched the same day.",
-              "Delivery times are estimates and may vary during public holidays and peak seasons.",
-              "You'll receive a notification when your order is shipped, including a tracking number if available.",
-              "Our delivery team will call you before delivering. Please ensure your phone is reachable.",
-              "If you're not available at the time of delivery, our courier will attempt re-delivery or contact you to arrange an alternative.",
-            ].map((text, i) => (
+            {content.important_info.map((text, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm font-manrope text-gray-600">
                 <CheckCircle size={15} className="text-maroon-400 flex-shrink-0 mt-0.5" />
                 {text}
@@ -168,9 +213,7 @@ export default function ShippingPage() {
             </div>
             <div>
               <h3 className="text-sm font-bold font-lexend text-gray-900 mb-1">Cash on Delivery (COD)</h3>
-              <p className="text-sm font-manrope text-gray-600 leading-relaxed">
-                COD is available for eligible locations. Pay in cash when your order arrives. Please have the exact amount ready — our riders do not carry change. COD availability is confirmed at checkout based on your delivery location.
-              </p>
+              <p className="text-sm font-manrope text-gray-600 leading-relaxed">{content.cod_text}</p>
             </div>
           </div>
         </div>

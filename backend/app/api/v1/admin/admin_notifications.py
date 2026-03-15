@@ -2,7 +2,7 @@
 Admin notification endpoints.
 """
 import uuid
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -13,6 +13,8 @@ from app.services.notification_service import (
     get_admin_unread_count,
     mark_notification_read,
     mark_all_read,
+    delete_admin_notification,
+    delete_all_admin_notifications,
 )
 
 router = APIRouter()
@@ -61,6 +63,27 @@ async def read_all(
 ):
     await mark_all_read(db, None)
     return {"message": "All notifications marked as read"}
+
+
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    found = await delete_admin_notification(db, notification_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Notification deleted"}
+
+
+@router.delete("")
+async def delete_all_notifications(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    count = await delete_all_admin_notifications(db)
+    return {"message": f"Deleted {count} notifications"}
 
 
 def _serialize(n) -> dict:

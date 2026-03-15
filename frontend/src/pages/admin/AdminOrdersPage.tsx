@@ -16,9 +16,11 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const load = () => {
+  const load = (forcePage?: number) => {
     setIsLoading(true);
-    const params = new URLSearchParams({ page: String(page), limit: "20" });
+    const currentPage = forcePage ?? page;
+    if (forcePage !== undefined) setPage(forcePage);
+    const params = new URLSearchParams({ page: String(currentPage), limit: "20" });
     if (search) params.set("q", search);
     if (statusFilter) params.set("status", statusFilter);
     api.get(`/api/v1/admin/orders?${params}`)
@@ -43,7 +45,7 @@ export default function AdminOrdersPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") load(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") load(1); }}
             placeholder="Search order number or customer…"
             className="w-full pl-9 pr-3 py-2 text-sm font-manrope border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-700"
           />

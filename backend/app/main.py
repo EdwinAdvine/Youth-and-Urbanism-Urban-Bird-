@@ -1,3 +1,19 @@
+"""
+main.py — FastAPI application factory for the Urban Bird API.
+
+Startup sequence (lifespan):
+  1. Create all missing DB tables (idempotent, race-safe for multi-worker deployments)
+  2. Seed any new DEFAULT_SETTINGS keys that don't yet exist in the DB
+  3. Apply one-time data patches (_patch_stale_settings)
+  4. Flush content-cache Redis keys so every Coolify deploy serves fresh data
+  5. Start APScheduler (background jobs: thank-you emails)
+
+Middleware stack (applied top-to-bottom):
+  SecurityHeadersMiddleware → ImageCacheMiddleware → NoCacheAPIMiddleware → CORS
+
+API docs (/docs, /redoc) are disabled in production automatically.
+"""
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +28,45 @@ from app.database import engine, Base
 from app.redis import get_redis, close_redis
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.limiter import limiter
+
+
+async def _seed_default_settings() -> None:
+    """Insert any DEFAULT_SETTINGS keys that are missing from the DB without overwriting existing values."""
+    from app.database import AsyncSessionLocal
+    from app.models.site_settings import SiteSetting, DEFAULT_SETTINGS
+    from sqlalchemy import select
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(SiteSetting.key))
+            existing_keys = set(result.scalars().all())
+            for key, value in DEFAULT_SETTINGS.items():
+                if key not in existing_keys:
+                    db.add(SiteSetting(key=key, value=value))
+            await db.commit()
+    except Exception:
+        pass
+
+
+async def _seed_default_banners() -> None:
+    """Insert the original 4 hero slides as banners if the banners table is empty."""
+    from app.database import AsyncSessionLocal
+    from app.models.banner import Banner
+    from sqlalchemy import select, func
+    DEFAULT_BANNERS = [
+        dict(image_url="/slides/027.jpg", title="Shop Men", subtitle="Redefining Urban Elegance", cta_text="Shop Men's", cta_link="/category/men", display_order=0),
+        dict(image_url="/slides/043.jpg", title="Shop Women", subtitle="Redefining Urban Elegance", cta_text="Shop Women's", cta_link="/category/women", display_order=1),
+        dict(image_url="/slides/096.jpg", title="TRENDY URBAN", subtitle="Premium Streetwear", cta_text="Shop Now", cta_link="/shop", display_order=2),
+        dict(image_url="/slides/sat26.jpg", title="MADE TO COMMAND", subtitle="New Collection 2025", cta_text="Explore", cta_link="/shop", display_order=3),
+    ]
+    try:
+        async with AsyncSessionLocal() as db:
+            count = await db.scalar(select(func.count()).select_from(Banner))
+            if count == 0:
+                for b in DEFAULT_BANNERS:
+                    db.add(Banner(**b, is_active=True))
+                await db.commit()
+    except Exception:
+        pass
 
 
 async def _patch_stale_settings() -> None:
@@ -70,6 +125,8 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
     except Exception:
         pass  # Tables already created by another worker — safe to continue
+    await _seed_default_settings()
+    await _seed_default_banners()
     await _patch_stale_settings()
     redis = await get_redis()
     # Flush content cache so every Coolify deployment serves fresh data immediately
@@ -159,12 +216,12 @@ os.makedirs(upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 # Import and register routers
-from app.api.v1 import auth, users, products, categories, cart, wishlist, orders, payments, search, coupons, shipping, newsletter, notifications
+from app.api.v1 import auth, users, products, categories, cart, wishlist, orders, payments, search, coupons, shipping, newsletter, notifications, content
 from app.api.v1.admin import (
     dashboard, admin_orders, admin_products, admin_categories,
     admin_customers, admin_inventory, admin_coupons, admin_delivery,
     admin_reports, admin_returns, admin_staff, admin_settings, admin_banners,
-    admin_notifications,
+    admin_notifications, admin_content,
 )
 # Ensure all models are registered with Base (so create_all picks them up)
 from app.models import newsletter as _newsletter_model  # noqa: F401
@@ -189,6 +246,7 @@ app.include_router(coupons.router, prefix=f"{API_V1}/coupons", tags=["Coupons"])
 app.include_router(shipping.router, prefix=f"{API_V1}/shipping", tags=["Shipping"])
 app.include_router(newsletter.router, prefix=f"{API_V1}/newsletter", tags=["Newsletter"])
 app.include_router(notifications.router, prefix=f"{API_V1}/notifications", tags=["Notifications"])
+app.include_router(content.router, prefix=f"{API_V1}/content", tags=["Content"])
 
 # Admin routes
 ADMIN = f"{API_V1}/admin"
@@ -206,6 +264,7 @@ app.include_router(admin_staff.router, prefix=f"{ADMIN}/staff", tags=["Admin - S
 app.include_router(admin_settings.router, prefix=f"{ADMIN}/settings", tags=["Admin - Settings"])
 app.include_router(admin_banners.router, prefix=f"{ADMIN}/banners", tags=["Admin - Banners"])
 app.include_router(admin_notifications.router, prefix=f"{ADMIN}/notifications", tags=["Admin - Notifications"])
+app.include_router(admin_content.router, prefix=f"{ADMIN}/content", tags=["Admin - Content"])
 
 
 @app.get("/health", tags=["Health"])

@@ -94,7 +94,7 @@ export default function UserActions() {
                   { to: "/account/orders", icon: <Package size={16} />, label: "My Orders" },
                   { to: "/account/addresses", icon: <MapPin size={16} />, label: "Addresses" },
                   {
-                    to: ["admin", "super_admin"].includes(user?.role || "")
+                    to: user?.role === "admin"
                       ? "/admin/notifications"
                       : "/account/notifications",
                     icon: <Package size={16} />,

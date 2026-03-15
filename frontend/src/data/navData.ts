@@ -31,7 +31,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
         ],
       },
       {
-        title: "LAYERS & JACKETS",
+        title: "SETS",
         items: [
           { label: "Hoodies", href: "/category/men?sub=hoodies" },
           { label: "Sweatshirts", href: "/category/men?sub=sweatshirts" },
@@ -73,7 +73,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
         ],
       },
       {
-        title: "LAYERS & JACKETS",
+        title: "SETS",
         items: [
           { label: "Hoodies", href: "/category/women?sub=hoodies" },
           { label: "Sweatshirts", href: "/category/women?sub=sweatshirts" },
@@ -112,7 +112,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     bannerUrl: "/category-kids.jpg",
     groups: [
       {
-        title: "LAYERS & JACKETS",
+        title: "SETS",
         items: [
           { label: "Hoodies", href: "/category/kids?sub=hoodies" },
           { label: "Sweatshirts", href: "/category/kids?sub=sweatshirts" },

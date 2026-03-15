@@ -18,7 +18,9 @@ export default function AccountLayout() {
   const user = useAuthStore((s) => s.user);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
 
-  if (user && ["admin", "super_admin"].includes(user.role)) {
+  // Regular admins are staff-only accounts — redirect them to admin panel.
+  // super_admin is also a customer and has their own account dashboard.
+  if (user && user.role === "admin") {
     return <Navigate to="/admin" replace />;
   }
 

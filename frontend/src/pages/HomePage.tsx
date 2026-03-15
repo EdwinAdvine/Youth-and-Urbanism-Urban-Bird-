@@ -102,9 +102,33 @@ function CategoryCard({ slug, label, startIndex }: { slug: string; label: string
 
 // ─── Hero Carousel ────────────────────────────────────────────────────────────
 function HeroCarousel() {
+  const [slides, setSlides] = useState(HERO_SLIDES);
+  const [slidesLoading, setSlidesLoading] = useState(true);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start", slidesToScroll: 1 });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const autoplayRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Fetch banners from API; fall back to hardcoded HERO_SLIDES if none exist
+  useEffect(() => {
+    api
+      .get("/api/v1/admin/banners/public")
+      .then((r) => {
+        const banners = r.data;
+        if (Array.isArray(banners) && banners.length > 0) {
+          setSlides(
+            banners.map((b: any) => ({
+              image: b.image_url,
+              title: b.title,
+              subtitle: b.subtitle ?? "",
+              cta: b.cta_text ?? "Shop Now",
+              link: b.cta_link ?? "/shop",
+            }))
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSlidesLoading(false));
+  }, []);
 
   const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
@@ -129,12 +153,21 @@ function HeroCarousel() {
     };
   }, [emblaApi, startAutoplay]);
 
+  // Skeleton while fetching
+  if (slidesLoading) {
+    return (
+      <section className="relative overflow-hidden bg-black" style={{ height: "clamp(400px, 80vh, 92vh)", minHeight: 400 }}>
+        <div className="w-full h-full animate-pulse bg-gray-800" />
+      </section>
+    );
+  }
+
   return (
     <section className="relative overflow-hidden bg-black" style={{ height: "clamp(400px, 80vh, 92vh)", minHeight: 400 }}>
       {/* Embla viewport */}
       <div className="h-full" ref={emblaRef}>
         <div className="flex h-full">
-          {HERO_SLIDES.map((s, i) => (
+          {slides.map((s, i) => (
             <div key={i} className="relative flex-none w-full sm:w-1/2 lg:w-1/3 h-full overflow-hidden">
               <img
                 src={s.image}
@@ -179,7 +212,7 @@ function HeroCarousel() {
 
       {/* Dot navigation */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {HERO_SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => scrollTo(i)}

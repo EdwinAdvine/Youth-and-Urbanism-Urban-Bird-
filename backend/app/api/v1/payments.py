@@ -24,6 +24,30 @@ from app.services.sms_service import send_order_confirmation_sms
 from app.utils.formatters import format_ksh
 import asyncio
 
+"""
+payments.py — Payment gateway endpoints for Urban Bird.
+
+Active gateways:
+  - Paystack  (primary, Kenya)          → /paystack/*
+  - M-Pesa    (STK Push, Kenya)         → /mpesa/*
+  - Stripe    (code present, not in UI) → /stripe/*
+
+Stock lifecycle (important):
+  - At checkout (pending_payment orders): stock is RESERVED
+    (variant.reserved_quantity += qty)
+  - On payment SUCCESS: stock is FINALIZED
+    (_finalize_order_stock: stock_quantity -= qty, reserved_quantity -= qty)
+  - On payment FAILURE: stock is RELEASED
+    (_release_reservation: reserved_quantity -= qty, stock_quantity unchanged)
+  - COD orders skip reservation entirely (stock deducted immediately at checkout)
+
+Idempotency:
+  Both the frontend verify endpoint and the Paystack webhook can fire for the
+  same payment.  All handlers use SELECT FOR UPDATE and check
+  `order.payment_status != "paid"` before writing — the first one wins,
+  the second is a no-op.
+"""
+
 router = APIRouter()
 stripe.api_key = settings.stripe_secret_key
 logger = logging.getLogger(__name__)
