@@ -19,6 +19,8 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Receive, Scope, Send
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
@@ -168,15 +170,30 @@ class ImageCacheMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class NoCacheAPIMiddleware(BaseHTTPMiddleware):
-    """Ensure all API responses are never cached — changes appear immediately after deployment."""
-    async def dispatch(self, request: Request, call_next) -> Response:
-        response = await call_next(request)
-        if request.url.path.startswith("/api/"):
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
-        return response
+class NoCacheAPIMiddleware:
+    """
+    Pure ASGI middleware — sets no-cache headers on all /api/ responses.
+    Implemented as raw ASGI (not BaseHTTPMiddleware) to avoid the known
+    BaseHTTPMiddleware conflict with FastAPI yield-dependencies (get_db),
+    which can cause 500 errors when preload_app=True in Gunicorn.
+    """
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/"):
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_no_cache(message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                headers["Pragma"] = "no-cache"
+                headers["Expires"] = "0"
+            await send(message)
+
+        await self.app(scope, receive, send_with_no_cache)
 
 
 _docs_url = "/docs" if settings.environment != "production" else None
