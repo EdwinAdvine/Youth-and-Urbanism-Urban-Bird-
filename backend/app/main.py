@@ -100,6 +100,26 @@ async def _patch_stale_settings() -> None:
         pass
 
 
+async def _apply_schema_changes() -> None:
+    """
+    Idempotent inline migrations for columns that were added to SQLAlchemy
+    models but were never shipped as Alembic migrations.
+
+    Uses ADD COLUMN IF NOT EXISTS so it is safe to run on every startup —
+    a no-op if the column already exists, adds it silently if it doesn't.
+    This fixes 500 errors on /products, /cart, and admin product save caused
+    by the missing `colors` column on product_variants.
+    """
+    from sqlalchemy import text
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS colors JSONB"
+            ))
+    except Exception:
+        pass  # Table doesn't exist yet on a fresh DB — create_all handles it
+
+
 async def _flush_content_cache(redis) -> None:
     """
     Flush non-auth Redis keys on every startup so Coolify deployments
@@ -127,6 +147,7 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
     except Exception:
         pass  # Tables already created by another worker — safe to continue
+    await _apply_schema_changes()
     await _seed_default_settings()
     await _seed_default_banners()
     await _patch_stale_settings()

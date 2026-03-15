@@ -20,10 +20,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "product_variants",
-        sa.Column("colors", JSONB(), nullable=True),
-    )
+    # IF NOT EXISTS makes this safe to run even if the column was already added
+    # by the inline _apply_schema_changes() migration in main.py lifespan.
+    op.execute("ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS colors JSONB")
 
 
 def downgrade() -> None:
