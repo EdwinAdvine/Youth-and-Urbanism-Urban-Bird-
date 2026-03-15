@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 from pathlib import Path
 import uuid
@@ -144,22 +145,33 @@ async def create_product(
     # Create inline variants if provided
     total_stock = 0
     for v in data.variants:
-        variant = ProductVariant(product_id=product.id, **_apply_colors(v.model_dump()))
+        v_data = _apply_colors(v.model_dump())
+        # Deduplicate SKU
+        sku = v_data.get("sku") or ""
+        if sku:
+            sku_check = await db.execute(select(ProductVariant).where(ProductVariant.sku == sku))
+            if sku_check.scalar_one_or_none():
+                v_data["sku"] = f"{sku}-{str(uuid.uuid4())[:6]}"
+        variant = ProductVariant(product_id=product.id, **v_data)
         db.add(variant)
         total_stock += v.stock_quantity
     if total_stock > 0:
         product.total_stock = total_stock
     await db.flush()
 
-    result = await db.execute(
-        select(Product)
-        .options(selectinload(Product.images), selectinload(Product.variants),
-                 selectinload(Product.category), selectinload(Product.subcategory))
-        .where(Product.id == product.id)
-    )
-    created = result.scalar_one()
-    await _log(db, admin, "create", "product", str(created.id), description=f"Created product: {data.name}")
-    return created
+    try:
+        result = await db.execute(
+            select(Product)
+            .options(selectinload(Product.images), selectinload(Product.variants),
+                     selectinload(Product.category), selectinload(Product.subcategory))
+            .where(Product.id == product.id)
+        )
+        created = result.scalar_one()
+        await _log(db, admin, "create", "product", str(created.id), description=f"Created product: {data.name}")
+        return created
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Duplicate SKU — a variant with that SKU already exists. Please use a unique SKU.")
 
 
 @router.get("/{product_id}", response_model=ProductDetail)
@@ -211,7 +223,14 @@ async def update_product(
 
         total_stock = 0
         for v_data in variants_data:
-            variant = ProductVariant(product_id=product_id, **_apply_colors(v_data))
+            v_data = _apply_colors(v_data)
+            # Deduplicate SKU
+            sku = v_data.get("sku") or ""
+            if sku:
+                sku_check = await db.execute(select(ProductVariant).where(ProductVariant.sku == sku))
+                if sku_check.scalar_one_or_none():
+                    v_data["sku"] = f"{sku}-{str(uuid.uuid4())[:6]}"
+            variant = ProductVariant(product_id=product_id, **v_data)
             db.add(variant)
             total_stock += v_data.get("stock_quantity", 0)
         product.total_stock = total_stock
