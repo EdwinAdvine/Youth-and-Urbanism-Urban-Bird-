@@ -43,6 +43,24 @@ async def _patch_stale_settings() -> None:
         pass
 
 
+async def _flush_content_cache(redis) -> None:
+    """
+    Flush non-auth Redis keys on every startup so Coolify deployments
+    always serve fresh content without any manual intervention.
+    Auth keys (refresh:*, blacklist:*, pwd_reset:*) are intentionally preserved.
+    """
+    try:
+        patterns = ["search:*", "product:*", "category:*", "settings:*", "banner:*"]
+        for pattern in patterns:
+            keys = []
+            async for key in redis.scan_iter(pattern):
+                keys.append(key)
+            if keys:
+                await redis.delete(*keys)
+    except Exception:
+        pass  # Never block startup if flush fails
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup — wrap in try/except so concurrent Gunicorn workers don't crash
@@ -53,7 +71,9 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass  # Tables already created by another worker — safe to continue
     await _patch_stale_settings()
-    await get_redis()
+    redis = await get_redis()
+    # Flush content cache so every Coolify deployment serves fresh data immediately
+    await _flush_content_cache(redis)
     start_scheduler()
     yield
     # Shutdown
