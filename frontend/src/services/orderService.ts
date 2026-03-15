@@ -6,9 +6,9 @@ const BASE = "/api/v1/orders";
 export interface CheckoutRequest {
   shipping_full_name: string;
   shipping_phone: string;
-  shipping_address_line_1: string;
-  shipping_city: string;
-  shipping_county: string;
+  shipping_address_line_1?: string;
+  shipping_city?: string;
+  shipping_county?: string;
   shipping_rate_id?: string;
   payment_method: string;
   coupon_code?: string;
