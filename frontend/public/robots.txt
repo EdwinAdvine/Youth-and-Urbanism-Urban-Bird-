@@ -1,4 +1,5 @@
 User-agent: *
+# App pages
 Disallow: /admin/
 Disallow: /account/
 Disallow: /checkout
@@ -6,6 +7,25 @@ Disallow: /cart
 Disallow: /order-confirmation/
 Disallow: /wishlist
 Disallow: /compare
+# WordPress/WooCommerce paths no longer exist — block to clear crawler indexes
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /wp-cron.php
+Disallow: /wp-includes/
+Disallow: /wp-content/
+Disallow: /xmlrpc.php
+Disallow: /shop/
+Disallow: /shop-cart/
+Disallow: /my-account/
+Disallow: /wc-api/
 Allow: /
+
+# Slow down Meta's aggressive crawling
+User-agent: meta-webindexer
+Crawl-delay: 30
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /wp-content/
+Disallow: /shop/
 
 Sitemap: https://urbanbird.co.ke/sitemap.xml
