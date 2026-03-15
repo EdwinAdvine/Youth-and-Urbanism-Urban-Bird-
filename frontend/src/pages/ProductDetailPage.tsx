@@ -416,19 +416,42 @@ export default function ProductDetailPage() {
               Color: <span className="font-normal text-gray-600">{selectedColor}</span>
             </p>
             <div className="flex gap-2 flex-wrap">
-              {colors.map((v) => (
-                <button
-                  key={v.color_name}
-                  onClick={() => handleVariantSelect(selectedSize, v.color_name)}
-                  title={v.color_name}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    selectedColor === v.color_name
-                      ? "border-maroon-700 ring-2 ring-maroon-700 ring-offset-1"
-                      : "border-white ring-1 ring-gray-200 hover:ring-gray-400"
-                  }`}
-                  style={{ backgroundColor: v.color_hex }}
-                />
-              ))}
+              {colors.map((v) =>
+                v.colors && v.colors.length > 1 ? (
+                  <button
+                    key={v.color_name}
+                    onClick={() => handleVariantSelect(selectedSize, v.color_name)}
+                    title={v.color_name}
+                    className={`flex items-center justify-center w-auto h-8 px-1.5 rounded-full border-2 transition-all ${
+                      selectedColor === v.color_name
+                        ? "border-maroon-700 ring-2 ring-maroon-700 ring-offset-1"
+                        : "border-white ring-1 ring-gray-200 hover:ring-gray-400"
+                    }`}
+                  >
+                    <span className="flex -space-x-2">
+                      {v.colors.map((c) => (
+                        <span
+                          key={c.hex}
+                          className="w-6 h-6 rounded-full border-2 border-white"
+                          style={{ backgroundColor: c.hex }}
+                        />
+                      ))}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    key={v.color_name}
+                    onClick={() => handleVariantSelect(selectedSize, v.color_name)}
+                    title={v.color_name}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      selectedColor === v.color_name
+                        ? "border-maroon-700 ring-2 ring-maroon-700 ring-offset-1"
+                        : "border-white ring-1 ring-gray-200 hover:ring-gray-400"
+                    }`}
+                    style={{ backgroundColor: v.color_hex }}
+                  />
+                )
+              )}
             </div>
           </div>
 

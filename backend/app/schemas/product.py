@@ -44,12 +44,18 @@ class ProductImageOut(BaseModel):
         from_attributes = True
 
 
+class ColorSwatch(BaseModel):
+    name: str
+    hex: str
+
+
 class ProductVariantOut(BaseModel):
     id: uuid.UUID
     sku: str
     size: str
     color_name: str
     color_hex: str
+    colors: list[ColorSwatch] | None = None
     price_adjustment: Decimal
     stock_quantity: int
     is_active: bool
@@ -169,6 +175,7 @@ class VariantInline(BaseModel):
     size: str
     color_name: str
     color_hex: str = "#000000"
+    colors: list[ColorSwatch] | None = None
     price_adjustment: Decimal = Decimal("0.00")
     stock_quantity: int = 0
 
@@ -228,6 +235,7 @@ class VariantCreate(BaseModel):
     size: str
     color_name: str
     color_hex: str = "#000000"
+    colors: list[ColorSwatch] | None = None
     price_adjustment: Decimal = Decimal("0.00")
     stock_quantity: int = 0
     barcode: str | None = None

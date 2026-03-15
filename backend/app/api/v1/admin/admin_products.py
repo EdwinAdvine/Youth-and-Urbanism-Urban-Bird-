@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import Optional
+from pathlib import Path
 import uuid
 import re
 import json
@@ -14,6 +15,7 @@ from app.models.audit_log import AuditLog
 from app.schemas.product import ProductCreate, ProductUpdate, VariantCreate, ProductDetail
 from app.api.deps import get_admin_user
 from app.utils.file_upload import save_product_image
+from app.config import settings
 
 
 def _json_safe(data: dict | None) -> dict | None:
@@ -44,6 +46,15 @@ async def _log(
     ))
 
 router = APIRouter()
+
+
+def _apply_colors(data: dict) -> dict:
+    """If a multi-color array is provided, auto-fill color_name and color_hex from it."""
+    colors = data.get("colors")
+    if colors:
+        data["color_name"] = " + ".join(c["name"] for c in colors)
+        data["color_hex"] = colors[0]["hex"]
+    return data
 
 
 def slugify(text: str) -> str:
@@ -131,7 +142,7 @@ async def create_product(
     # Create inline variants if provided
     total_stock = 0
     for v in data.variants:
-        variant = ProductVariant(product_id=product.id, **v.model_dump())
+        variant = ProductVariant(product_id=product.id, **_apply_colors(v.model_dump()))
         db.add(variant)
         total_stock += v.stock_quantity
     if total_stock > 0:
@@ -198,7 +209,7 @@ async def update_product(
 
         total_stock = 0
         for v_data in variants_data:
-            variant = ProductVariant(product_id=product_id, **v_data)
+            variant = ProductVariant(product_id=product_id, **_apply_colors(v_data))
             db.add(variant)
             total_stock += v_data.get("stock_quantity", 0)
         product.total_stock = total_stock
@@ -274,6 +285,50 @@ async def upload_images(
     return {"uploaded": uploaded}
 
 
+@router.delete("/{product_id}/images/{image_id}", status_code=204)
+async def delete_image(
+    product_id: uuid.UUID,
+    image_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    result = await db.execute(
+        select(ProductImage).where(
+            ProductImage.id == image_id,
+            ProductImage.product_id == product_id,
+        )
+    )
+    img = result.scalar_one_or_none()
+    if not img:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    was_primary = img.is_primary
+
+    # Delete files from disk
+    # url is stored as "/uploads/products/{product_id}/xxx.webp"
+    # upload_dir is "/app/uploads", so strip "/uploads" prefix and join to upload_dir
+    for url in [img.url, img.thumbnail_url]:
+        if url:
+            relative = url[len("/uploads"):]  # e.g. "/products/{id}/xxx.webp"
+            path = Path(settings.upload_dir) / relative.lstrip("/")
+            path.unlink(missing_ok=True)
+
+    await db.delete(img)
+    await db.flush()
+
+    # If deleted image was primary, promote the next remaining image
+    if was_primary:
+        remaining = await db.execute(
+            select(ProductImage)
+            .where(ProductImage.product_id == product_id)
+            .order_by(ProductImage.display_order)
+            .limit(1)
+        )
+        next_img = remaining.scalar_one_or_none()
+        if next_img:
+            next_img.is_primary = True
+
+
 @router.post("/{product_id}/variants", status_code=201)
 async def add_variant(
     product_id: uuid.UUID,
@@ -286,7 +341,7 @@ async def add_variant(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    variant = ProductVariant(product_id=product_id, **data.model_dump())
+    variant = ProductVariant(product_id=product_id, **_apply_colors(data.model_dump()))
     db.add(variant)
     await db.flush()
 
@@ -313,7 +368,7 @@ async def update_variant(
     if not variant:
         raise HTTPException(status_code=404, detail="Variant not found")
 
-    updated_fields = data.model_dump(exclude_unset=True)
+    updated_fields = _apply_colors(data.model_dump(exclude_unset=True))
     for field, value in updated_fields.items():
         setattr(variant, field, value)
 

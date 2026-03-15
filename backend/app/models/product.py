@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from sqlalchemy import String, Boolean, DateTime, Text, Integer, Numeric, JSON, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from app.database import Base
 
 
@@ -120,6 +120,7 @@ class ProductVariant(Base):
     size: Mapped[str] = mapped_column(String(20), nullable=False)
     color_name: Mapped[str] = mapped_column(String(50), nullable=False)
     color_hex: Mapped[str] = mapped_column(String(7), nullable=False, default="#000000")
+    colors: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     price_adjustment: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("0.00"))
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     reserved_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

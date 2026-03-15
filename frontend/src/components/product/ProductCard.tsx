@@ -221,16 +221,37 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Color swatches */}
           {product.variants && product.variants.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap mt-1">
-              {[...new Map(product.variants.map((v) => [v.color_hex, v])).values()]
+              {[...new Map(
+                  product.variants.map((v) => [
+                    v.colors?.length ? v.colors.map((c) => c.hex).join(",") : v.color_hex,
+                    v,
+                  ])
+                ).values()]
                 .slice(0, 4)
-                .map((v) => (
-                  <span
-                    key={v.color_hex}
-                    className="w-5 h-5 sm:w-4 sm:h-4 rounded-full border-2 border-white ring-1 ring-gray-200"
-                    style={{ backgroundColor: v.color_hex }}
-                    title={v.color_name}
-                  />
-                ))}
+                .map((v) =>
+                  v.colors && v.colors.length > 1 ? (
+                    <span
+                      key={v.colors.map((c) => c.hex).join(",")}
+                      className="flex -space-x-1.5"
+                      title={v.color_name}
+                    >
+                      {v.colors.map((c) => (
+                        <span
+                          key={c.hex}
+                          className="w-4 h-4 rounded-full border-2 border-white ring-1 ring-gray-200"
+                          style={{ backgroundColor: c.hex }}
+                        />
+                      ))}
+                    </span>
+                  ) : (
+                    <span
+                      key={v.color_hex}
+                      className="w-5 h-5 sm:w-4 sm:h-4 rounded-full border-2 border-white ring-1 ring-gray-200"
+                      style={{ backgroundColor: v.color_hex }}
+                      title={v.color_name}
+                    />
+                  )
+                )}
             </div>
           )}
         </div>

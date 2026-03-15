@@ -49,12 +49,18 @@ export interface ProductImage {
   is_primary: boolean;
 }
 
+export interface ColorSwatch {
+  name: string;
+  hex: string;
+}
+
 export interface ProductVariant {
   id: string;
   sku: string;
   size: string;
   color_name: string;
   color_hex: string;
+  colors?: ColorSwatch[];
   price_adjustment: number;
   stock_quantity: number;
   is_active: boolean;

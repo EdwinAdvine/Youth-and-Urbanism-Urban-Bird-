@@ -22,17 +22,25 @@ export default function AdminProductFormPage() {
     category_id: "", subcategory_id: "", status: "active",
     is_featured: false, is_on_sale: false, sale_percentage: "",
   });
-  const [variants, setVariants] = useState<{ size: string; color_name: string; color_hex: string; stock_quantity: number; sku: string }[]>([]);
+  type ColorSwatch = { name: string; hex: string };
+  type ColorGroup = { label: string; colors: ColorSwatch[] };
+  type VariantRow = { size: string; color_name: string; color_hex: string; colors?: ColorSwatch[]; stock_quantity: number; sku: string };
+
+  const [variants, setVariants] = useState<VariantRow[]>([]);
 
   // Variant builder selections
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  // Color mix builder
+  const [colorMixes, setColorMixes] = useState<ColorGroup[]>([]);
+  const [mixPickerSelection, setMixPickerSelection] = useState<string[]>([]);
 
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export default function AdminProductFormPage() {
             status: p.status, is_featured: p.is_featured, is_on_sale: p.is_on_sale,
             sale_percentage: p.sale_percentage ? String(p.sale_percentage) : "",
           });
-          setVariants(p.variants?.map((v: any) => ({ size: v.size, color_name: v.color_name, color_hex: v.color_hex, stock_quantity: v.stock_quantity, sku: v.sku })) ?? []);
+          setVariants(p.variants?.map((v: any) => ({ size: v.size, color_name: v.color_name, color_hex: v.color_hex, colors: v.colors ?? undefined, stock_quantity: v.stock_quantity, sku: v.sku })) ?? []);
           setExistingImages(p.images ?? []);
         })
         .catch(() => {})
@@ -64,19 +72,30 @@ export default function AdminProductFormPage() {
   }, [id]);
 
   const buildVariants = () => {
-    if (selectedSizes.length === 0 || selectedColors.length === 0) {
-      toast.error("Select at least one size and one color");
+    const colorMap = Object.fromEntries(availableColors.map((c) => [c.name, c.hex]));
+    // Build color groups: single-color entries + multi-color mixes
+    const colorGroups: ColorGroup[] = [
+      ...selectedColors.map((name) => ({ label: name, colors: [{ name, hex: colorMap[name] || "#000000" }] })),
+      ...colorMixes,
+    ];
+    if (selectedSizes.length === 0 || colorGroups.length === 0) {
+      toast.error("Select at least one size and one color (or mix)");
       return;
     }
-    const colorMap = Object.fromEntries(availableColors.map((c) => [c.name, c.hex]));
-    const newVariants = selectedSizes.flatMap((size) =>
-      selectedColors.map((colorName) => ({
-        size,
-        color_name: colorName,
-        color_hex: colorMap[colorName] || "#000000",
-        stock_quantity: 10,
-        sku: `${form.slug || "PROD"}-${size}-${colorName.toUpperCase().replace(/\s/g, "-")}`,
-      }))
+    const slug = form.slug || "PROD";
+    const newVariants: VariantRow[] = selectedSizes.flatMap((size) =>
+      colorGroups.map((group) => {
+        const isMulti = group.colors.length > 1;
+        const skuSuffix = group.label.toUpperCase().replace(/[\s+/]+/g, "-");
+        return {
+          size,
+          color_name: group.label,
+          color_hex: group.colors[0].hex,
+          colors: isMulti ? group.colors : undefined,
+          stock_quantity: 10,
+          sku: `${slug}-${size}-${skuSuffix}`,
+        };
+      })
     );
     setVariants(newVariants);
   };
@@ -84,6 +103,18 @@ export default function AdminProductFormPage() {
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const handleImageDelete = async (imageId: string) => {
+    setDeletingImageId(imageId);
+    try {
+      await api.delete(`/api/v1/admin/products/${id}/images/${imageId}`);
+      setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to delete image.");
+    } finally {
+      setDeletingImageId(null);
     }
   };
 
@@ -210,8 +241,16 @@ export default function AdminProductFormPage() {
             <h2 className="font-semibold font-lexend text-gray-900 mb-4">Images</h2>
             <div className="grid grid-cols-4 gap-3">
               {existingImages.map((img) => (
-                <div key={img.id} className="aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
+                <div key={img.id} className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
                   <img src={img.thumbnail_url || img.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleImageDelete(img.id)}
+                    disabled={deletingImageId === img.id}
+                    className="absolute top-1 right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow disabled:opacity-50"
+                  >
+                    <X size={10} />
+                  </button>
                 </div>
               ))}
               {images.map((img, i) => (
@@ -324,17 +363,95 @@ export default function AdminProductFormPage() {
                 )}
               </div>
 
+              {/* Color Mixes */}
+              {availableColors.length > 0 && (
+                <div>
+                  <p className="text-sm font-manrope font-medium text-gray-700 mb-1">
+                    Color Mixes{" "}
+                    <span className="text-xs text-gray-400 font-normal">(for items with multiple colors in one variant)</span>
+                  </p>
+                  {/* Mix picker */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-3 mb-2 space-y-2">
+                    <p className="text-xs text-gray-500 font-manrope">Pick ≥2 colors, then click "Add Mix"</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableColors.map((color) => {
+                        const sel = mixPickerSelection.includes(color.name);
+                        return (
+                          <button
+                            key={color.name}
+                            type="button"
+                            onClick={() =>
+                              setMixPickerSelection(
+                                sel
+                                  ? mixPickerSelection.filter((n) => n !== color.name)
+                                  : [...mixPickerSelection, color.name]
+                              )
+                            }
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-manrope border transition-colors ${
+                              sel
+                                ? "bg-maroon-50 border-maroon-600 text-maroon-700 font-medium"
+                                : "bg-white border-gray-200 text-gray-700 hover:border-maroon-400"
+                            }`}
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: color.hex }} />
+                            {color.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={mixPickerSelection.length < 2}
+                      onClick={() => {
+                        const colorMap = Object.fromEntries(availableColors.map((c) => [c.name, c.hex]));
+                        const label = mixPickerSelection.join(" + ");
+                        const already = colorMixes.some((m) => m.label === label);
+                        if (!already) {
+                          setColorMixes([...colorMixes, { label, colors: mixPickerSelection.map((n) => ({ name: n, hex: colorMap[n] || "#000000" })) }]);
+                        }
+                        setMixPickerSelection([]);
+                      }}
+                      className="px-3 py-1 text-xs font-manrope bg-maroon-700 hover:bg-maroon-800 text-white rounded-lg disabled:opacity-40 transition-colors"
+                    >
+                      + Add Mix
+                    </button>
+                  </div>
+                  {/* Added mixes */}
+                  {colorMixes.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {colorMixes.map((mix) => (
+                        <span key={mix.label} className="flex items-center gap-1.5 bg-white border border-maroon-200 px-2.5 py-1 rounded-lg text-xs font-manrope text-maroon-700">
+                          <span className="flex -space-x-1">
+                            {mix.colors.map((c) => (
+                              <span key={c.hex} className="w-3.5 h-3.5 rounded-full border border-white" style={{ backgroundColor: c.hex }} />
+                            ))}
+                          </span>
+                          {mix.label}
+                          <button type="button" onClick={() => setColorMixes(colorMixes.filter((m) => m.label !== mix.label))} className="text-gray-400 hover:text-red-500 ml-0.5">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={buildVariants}
-                  disabled={selectedSizes.length === 0 || selectedColors.length === 0}
-                >
-                  Build {selectedSizes.length > 0 && selectedColors.length > 0
-                    ? `${selectedSizes.length} × ${selectedColors.length} = ${selectedSizes.length * selectedColors.length} variants`
-                    : "Variants"}
-                </Button>
+                {(() => {
+                  const totalColorGroups = selectedColors.length + colorMixes.length;
+                  const totalVariants = selectedSizes.length * totalColorGroups;
+                  return (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={buildVariants}
+                      disabled={selectedSizes.length === 0 || totalColorGroups === 0}
+                    >
+                      Build {selectedSizes.length > 0 && totalColorGroups > 0
+                        ? `${selectedSizes.length} × ${totalColorGroups} = ${totalVariants} variant${totalVariants !== 1 ? "s" : ""}`
+                        : "Variants"}
+                    </Button>
+                  );
+                })()}
                 {variants.length > 0 && (
                   <span className="text-xs text-gray-400 font-manrope">
                     Will replace existing {variants.length} variant{variants.length !== 1 ? "s" : ""}
@@ -369,7 +486,15 @@ export default function AdminProductFormPage() {
                         <td className="py-1.5 pr-3 text-sm font-manrope">{v.size}</td>
                         <td className="py-1.5 pr-3">
                           <div className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: v.color_hex }} />
+                            {v.colors && v.colors.length > 1 ? (
+                              <span className="flex -space-x-1.5">
+                                {v.colors.map((c) => (
+                                  <span key={c.hex} className="w-4 h-4 rounded-full border-2 border-white ring-1 ring-gray-200" style={{ backgroundColor: c.hex }} />
+                                ))}
+                              </span>
+                            ) : (
+                              <span className="w-4 h-4 rounded-full border border-gray-200" style={{ backgroundColor: v.color_hex }} />
+                            )}
                             <span className="text-sm font-manrope">{v.color_name}</span>
                           </div>
                         </td>
