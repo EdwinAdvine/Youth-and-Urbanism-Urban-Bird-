@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { NAV_CATEGORIES, NAV_EXTRAS } from "../../data/navData";
@@ -7,15 +7,33 @@ import { useNavCategoryStore } from "../../store/navCategoryStore";
 
 export default function MegaMenu() {
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  const [dropdownTop, setDropdownTop] = useState(56);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const navRef = useRef<HTMLElement>(null);
 
   const { rawCategories, isLoaded, fetchCategories } = useNavCategoryStore();
 
   useEffect(() => { fetchCategories(); }, []);
 
-  // Merge the original grouped structure with live data from the DB.
-  // This preserves the rich TOPS / LAYERS / BOTTOMS / ACCESSORIES groups
-  // while reflecting any name changes or subcategory deactivations the admin makes.
+  // Always measure the real header bottom so the dropdown attaches seamlessly
+  const measureTop = useCallback(() => {
+    const header = navRef.current?.closest("header");
+    if (header) setDropdownTop(header.getBoundingClientRect().bottom);
+  }, []);
+
+  useEffect(() => {
+    measureTop();
+    window.addEventListener("scroll", measureTop, { passive: true });
+    window.addEventListener("resize", measureTop);
+    return () => {
+      window.removeEventListener("scroll", measureTop);
+      window.removeEventListener("resize", measureTop);
+    };
+  }, [measureTop]);
+
+  // Merge static grouped structure with live DB data.
+  // Preserves TOPS / LAYERS / BOTTOMS / ACCESSORIES groups while
+  // reflecting admin name changes and subcategory activations.
   const categories = useMemo(() => {
     if (!isLoaded || rawCategories.length === 0) return NAV_CATEGORIES;
     return NAV_CATEGORIES.map((cat) => {
@@ -48,11 +66,12 @@ export default function MegaMenu() {
 
   const open = (slug: string) => {
     clearTimeout(timeoutRef.current);
+    measureTop(); // re-measure in case announcement bar was dismissed
     setActiveSlug(slug);
   };
 
   const close = () => {
-    timeoutRef.current = setTimeout(() => setActiveSlug(null), 300);
+    timeoutRef.current = setTimeout(() => setActiveSlug(null), 200);
   };
 
   const keepOpen = () => clearTimeout(timeoutRef.current);
@@ -61,18 +80,18 @@ export default function MegaMenu() {
 
   return (
     <>
-      <nav className="hidden lg:flex items-stretch h-14">
-        {/* ── Main category tabs ── */}
+      {/* Desktop nav bar */}
+      <nav ref={navRef} className="hidden lg:flex items-center h-14">
         {categories.map((cat) => (
           <div
             key={cat.slug}
-            className="relative flex items-center"
+            className="h-full flex items-center"
             onMouseEnter={() => open(cat.slug)}
             onMouseLeave={close}
           >
             <Link
               to={cat.href}
-              className={`flex items-center gap-1 px-4 py-2 text-[13px] font-lexend font-semibold uppercase tracking-wide transition-colors duration-150 whitespace-nowrap ${
+              className={`flex items-center gap-1 px-4 h-full text-[13px] font-lexend font-semibold uppercase tracking-wide transition-colors duration-150 whitespace-nowrap ${
                 activeSlug === cat.slug
                   ? "text-maroon-700"
                   : "text-gray-800 hover:text-maroon-700"
@@ -89,12 +108,11 @@ export default function MegaMenu() {
           </div>
         ))}
 
-        {/* ── Standalone extra links ── */}
         {NAV_EXTRAS.map((extra) => (
           <Link
             key={extra.href}
             to={extra.href}
-            className={`px-4 py-2 text-[13px] font-lexend font-semibold uppercase tracking-wide transition-colors duration-150 whitespace-nowrap ${
+            className={`flex items-center px-4 h-full text-[13px] font-lexend font-semibold uppercase tracking-wide transition-colors duration-150 whitespace-nowrap ${
               extra.isAccent
                 ? "text-maroon-700 hover:text-maroon-800"
                 : "text-gray-800 hover:text-maroon-700"
@@ -105,20 +123,22 @@ export default function MegaMenu() {
         ))}
       </nav>
 
-      {/* ── Mega dropdown panel (full-width, absolute below sticky header) ── */}
+      {/* Mega dropdown — fixed, top measured from real header bottom */}
       {activeCategory && activeCategory.groups.length > 0 && (
         <div
-          className="absolute left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl z-40"
-          style={{ top: "56px" }}
+          className="fixed left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl"
+          style={{ top: dropdownTop, zIndex: 9999 }}
           onMouseEnter={keepOpen}
           onMouseLeave={close}
         >
           <div className="container-custom py-8">
             <div
               className="grid gap-8"
-              style={{ gridTemplateColumns: `260px repeat(${activeCategory.groups.length}, 1fr)` }}
+              style={{
+                gridTemplateColumns: `260px repeat(${activeCategory.groups.length}, 1fr)`,
+              }}
             >
-              {/* ── Banner image ── */}
+              {/* Category banner */}
               <div>
                 <Link
                   to={activeCategory.href}
@@ -136,7 +156,7 @@ export default function MegaMenu() {
                 </Link>
               </div>
 
-              {/* ── Subcategory groups ── */}
+              {/* Subcategory groups */}
               {activeCategory.groups.map((group, gi) => (
                 <div key={gi}>
                   {group.title && (
