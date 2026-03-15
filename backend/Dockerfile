@@ -15,4 +15,7 @@ RUN mkdir -p /app/uploads/products
 
 EXPOSE 8000
 
-CMD ["gunicorn", "main:app", "-c", "gunicorn.conf.py"]
+# Run migrations first, then start the app.
+# This ensures any new Alembic migration is applied automatically on every
+# Coolify deployment before traffic hits the server.
+CMD ["sh", "-c", "alembic upgrade head && gunicorn main:app -c gunicorn.conf.py"]
