@@ -43,11 +43,20 @@ export default function AdminInventoryPage() {
   const [restockForm, setRestockForm] = useState<RestockForm>({ variant_id: '', quantity: 1, note: '' });
   const [restocking, setRestocking] = useState(false);
 
+  const [total, setTotal] = useState(0);
+
   const fetchInventory = async () => {
     try {
       setLoading(true);
       const res = await api.get('/api/v1/admin/inventory');
-      setVariants(res.data?.data ?? res.data ?? []);
+      const payload = res.data;
+      if (payload && typeof payload === 'object' && 'data' in payload) {
+        setVariants(payload.data ?? []);
+        setTotal(payload.total ?? 0);
+      } else {
+        setVariants(Array.isArray(payload) ? payload : []);
+        setTotal(Array.isArray(payload) ? payload.length : 0);
+      }
     } catch {
       toast.error('Failed to load inventory');
     } finally {
@@ -106,7 +115,7 @@ export default function AdminInventoryPage() {
           className={`rounded-xl border p-4 cursor-pointer transition-colors ${filter === 'all' ? 'border-[#782121] bg-[#782121]/5' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
         >
           <p className="text-xs text-gray-500 mb-1">Total Variants</p>
-          <p className="text-2xl font-bold font-lexend text-gray-900">{variants.length}</p>
+          <p className="text-2xl font-bold font-lexend text-gray-900">{total}</p>
         </div>
         <div
           onClick={() => setFilter('low')}

@@ -76,6 +76,11 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!shippingData) return;
+    if (!isPickup && !shippingData.address_line_1) {
+      toast.error("Please go back and enter your delivery address");
+      setStep("shipping");
+      return;
+    }
     setProcessing(true);
     setError(null);
     try {
@@ -175,6 +180,8 @@ export default function CheckoutPage() {
                 }
                 const fd = new FormData(e.currentTarget);
                 const data = Object.fromEntries(fd.entries()) as any;
+                // Address is required for delivery — optional only if user will select pickup in next step
+                // We allow empty for now and validate at review step based on selected rate
                 setShippingData(data);
                 fetchShippingRates(data.county);
                 setStep("payment");

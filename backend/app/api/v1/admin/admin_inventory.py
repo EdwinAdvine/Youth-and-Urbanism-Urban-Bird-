@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 import uuid
@@ -27,26 +27,39 @@ async def get_inventory(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
 ):
-    result = await db.execute(
+    base_query = (
         select(ProductVariant)
+        .join(ProductVariant.product)
+        .where(ProductVariant.is_active == True, Product.status == "active")
+    )
+    total_result = await db.execute(select(func.count()).select_from(base_query.subquery()))
+    total = total_result.scalar_one() or 0
+
+    result = await db.execute(
+        base_query
         .options(selectinload(ProductVariant.product))
         .order_by(ProductVariant.stock_quantity.asc())
         .offset((page - 1) * limit)
         .limit(limit)
     )
     variants = result.scalars().all()
-    return [
-        {
-            "id": str(v.id),
-            "sku": v.sku,
-            "product_name": v.product.name if v.product else "",
-            "size": v.size,
-            "color_name": v.color_name,
-            "stock_quantity": v.stock_quantity,
-            "is_active": v.is_active,
-        }
-        for v in variants
-    ]
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "data": [
+            {
+                "id": str(v.id),
+                "sku": v.sku,
+                "product_name": v.product.name if v.product else "",
+                "size": v.size,
+                "color_name": v.color_name,
+                "stock_quantity": v.stock_quantity,
+                "is_active": v.is_active,
+            }
+            for v in variants
+        ],
+    }
 
 
 @router.post("/restock")

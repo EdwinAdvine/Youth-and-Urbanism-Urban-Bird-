@@ -118,6 +118,7 @@ async def checkout(
     subtotal = sum(item.unit_price * item.quantity for item in cart.items)
     # Determine shipping cost — use selected rate from DB, fall back to flat KES 300
     shipping_cost = Decimal("300.00")
+    shipping_method_name = "standard"
     if data.shipping_rate_id:
         try:
             rate_result = await db.execute(
@@ -128,6 +129,7 @@ async def checkout(
             )
             rate = rate_result.scalar_one_or_none()
             if rate:
+                shipping_method_name = rate.method
                 # Apply free-shipping threshold if configured
                 if rate.free_above and subtotal >= rate.free_above:
                     shipping_cost = Decimal("0.00")
@@ -184,12 +186,12 @@ async def checkout(
         total=total,
         shipping_full_name=data.shipping_full_name,
         shipping_phone=data.shipping_phone,
-        shipping_address_1=data.shipping_address_line_1,
+        shipping_address_1=data.shipping_address_line_1 or "Shop Pickup",
         shipping_address_2=data.shipping_address_line_2,
-        shipping_city=data.shipping_city,
-        shipping_county=data.shipping_county,
+        shipping_city=data.shipping_city or "N/A",
+        shipping_county=data.shipping_county or "N/A",
         shipping_postal_code=None,
-        shipping_method="standard",
+        shipping_method=shipping_method_name,
         payment_method=data.payment_method,
         payment_status="pending",
         customer_notes=data.customer_notes,
