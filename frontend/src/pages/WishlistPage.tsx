@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { useWishlistStore } from "../store/wishlistStore";
 import { useCartStore } from "../store/cartStore";
+import { useUIStore } from "../store/uiStore";
 import type { Product } from "../types";
 import api from "../services/api";
 import { formatKSh } from "../utils/formatPrice";
@@ -15,6 +16,7 @@ export default function WishlistPage() {
   useSEO({ title: "Your Wishlist", noindex: true });
   const { removeItem } = useWishlistStore();
   const { addItem } = useCartStore();
+  const { openCartDrawer } = useUIStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,7 +47,20 @@ export default function WishlistPage() {
     try {
       await addItem(firstVariant.id, 1);
       await handleRemove(product.id);
-      toast.success("Moved to cart");
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Moved to cart!</span>
+            <button
+              onClick={() => { toast.dismiss(t.id); openCartDrawer(); }}
+              className="text-sm font-semibold text-maroon-700 whitespace-nowrap underline underline-offset-2"
+            >
+              View Cart
+            </button>
+          </div>
+        ),
+        { duration: 4000 }
+      );
     } catch {
       toast.error("Failed to add to cart");
     }

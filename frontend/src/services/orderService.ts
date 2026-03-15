@@ -14,6 +14,20 @@ export interface CheckoutRequest {
   coupon_code?: string;
   mpesa_phone?: string;
   guest_email?: string;
+  recaptcha_token?: string;
+}
+
+// reCAPTCHA v3 — site key must match the one in index.html
+const RECAPTCHA_SITE_KEY = "RECAPTCHA_SITE_KEY";
+
+async function getRecaptchaToken(action: string): Promise<string | undefined> {
+  try {
+    const grecaptcha = (window as any).grecaptcha;
+    if (!grecaptcha?.execute) return undefined;
+    return await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+  } catch {
+    return undefined;
+  }
 }
 
 export interface MpesaInitiateResponse {
@@ -24,6 +38,10 @@ export interface MpesaInitiateResponse {
 
 export const orderService = {
   async checkout(data: CheckoutRequest): Promise<Order> {
+    // Attach reCAPTCHA token for guest checkouts (silently skipped if not loaded)
+    if (data.guest_email && !data.recaptcha_token) {
+      data.recaptcha_token = await getRecaptchaToken("checkout");
+    }
     const res = await api.post<Order>(`${BASE}/checkout`, data);
     // Store guest credentials in sessionStorage for later order lookup
     if (!res.data.user_id && res.data.guest_token) {

@@ -9,6 +9,7 @@ import uuid
 
 from app.limiter import limiter
 from app.config import settings as _settings
+import httpx
 
 from app.database import get_db
 from app.models.order import Order, OrderItem, OrderStatusHistory
@@ -73,6 +74,24 @@ def _maybe_fire_stock_alert(variant: "ProductVariant", product: "Product", admin
         )
 
 
+async def _verify_recaptcha(token: str | None) -> bool:
+    """Verify a reCAPTCHA v3 token. Returns True if the request looks human."""
+    if not _settings.recaptcha_enabled or not _settings.recaptcha_secret_key:
+        return True  # disabled in dev — let everything through
+    if not token:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data={"secret": _settings.recaptcha_secret_key, "response": token},
+            )
+        result = r.json()
+        return bool(result.get("success")) and float(result.get("score", 0)) >= _settings.recaptcha_score_threshold
+    except Exception:
+        return True  # on network error, fail open so real customers aren't blocked
+
+
 def _generate_order_number() -> str:
     import secrets
     from datetime import date
@@ -81,7 +100,7 @@ def _generate_order_number() -> str:
     return f"UB-{today}-{suffix}"
 
 
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 @router.post("/checkout", response_model=OrderOut, status_code=201)
 async def checkout(
     request: Request,
@@ -94,6 +113,9 @@ async def checkout(
     if not current_user:
         if not data.guest_email:
             raise HTTPException(status_code=400, detail="guest_email is required for guest checkout")
+        # Bot protection: verify reCAPTCHA token for guest orders
+        if not await _verify_recaptcha(data.recaptcha_token):
+            raise HTTPException(status_code=400, detail="Order verification failed. Please refresh the page and try again.")
 
     # Get cart — by user_id for authenticated users, by session_id for guests
     if current_user:

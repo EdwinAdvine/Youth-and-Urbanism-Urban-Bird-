@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Cookie, Response
+from fastapi import APIRouter, Depends, HTTPException, Cookie, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,7 @@ from app.schemas.cart import CartItemAdd, CartItemUpdate, CartOut, CartItemOut, 
 from app.api.deps import get_optional_user
 from app.models.user import User
 from app.config import settings
+from app.limiter import limiter
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -115,8 +116,10 @@ async def get_cart(
     return _build_cart_out(cart)
 
 
+@limiter.limit("30/minute")
 @router.post("/items", response_model=CartOut, status_code=201)
 async def add_to_cart(
+    request: Request,
     data: CartItemAdd,
     response: Response,
     db: AsyncSession = Depends(get_db),

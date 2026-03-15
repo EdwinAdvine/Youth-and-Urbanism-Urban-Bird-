@@ -17,10 +17,11 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   const { isInWishlist, toggleItem: toggleWishlist } = useWishlistStore();
   const { addItem, isLoading: cartLoading } = useCartStore();
-  const { openQuickView } = useUIStore();
+  const { openQuickView, openCartDrawer } = useUIStore();
   const { toggleProduct, isInCompare } = useCompareStore();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
@@ -44,7 +45,22 @@ export default function ProductCard({ product }: ProductCardProps) {
     if (!defaultVariant) return;
     try {
       await addItem(defaultVariant.id);
-      toast.success(`${product.name} added to cart`);
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 4000);
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">{product.name} added!</span>
+            <button
+              onClick={() => { toast.dismiss(t.id); openCartDrawer(); }}
+              className="text-sm font-semibold text-maroon-700 whitespace-nowrap underline underline-offset-2"
+            >
+              View Cart
+            </button>
+          </div>
+        ),
+        { duration: 4000 }
+      );
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to add to cart");
     }
@@ -183,7 +199,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Add to cart button — always visible on mobile */}
+          {/* Add to cart / View cart button — always visible on mobile */}
           <div
             className={cn(
               "absolute bottom-0 left-0 right-0 transition-all duration-200",
@@ -191,13 +207,27 @@ export default function ProductCard({ product }: ProductCardProps) {
               isHovered && "md:opacity-100 md:translate-y-0"
             )}
           >
-            <button
-              onClick={handleAddToCart}
-              disabled={cartLoading || product.total_stock === 0}
-              className="w-full bg-gray-900/90 backdrop-blur-sm text-white text-sm font-manrope font-medium py-2.5 hover:bg-maroon-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {product.total_stock === 0 ? "Sold Out" : "Add to Cart"}
-            </button>
+            {justAdded ? (
+              <div className="flex w-full">
+                <span className="flex-1 bg-emerald-600 text-white text-sm font-manrope font-medium py-2.5 text-center">
+                  ✓ Added
+                </span>
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCartDrawer(); }}
+                  className="flex-1 bg-maroon-700 text-white text-sm font-manrope font-medium py-2.5 hover:bg-maroon-800 transition-colors"
+                >
+                  View Cart →
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleAddToCart}
+                disabled={cartLoading || product.total_stock === 0}
+                className="w-full bg-gray-900/90 backdrop-blur-sm text-white text-sm font-manrope font-medium py-2.5 hover:bg-maroon-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {product.total_stock === 0 ? "Sold Out" : "Add to Cart"}
+              </button>
+            )}
           </div>
         </div>
 

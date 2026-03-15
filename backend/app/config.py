@@ -135,6 +135,13 @@ class Settings(BaseSettings):
     at_api_key: str = ""
     at_sender_id: str = "URBANBIRD"  # registered sender ID on Africa's Talking
 
+    # ── Bot Protection — Google reCAPTCHA v3 ──────────────────────────────────
+    # Register at https://www.google.com/recaptcha/admin (choose v3, domain = urbanbird.co.ke)
+    # Set RECAPTCHA_SECRET_KEY on Coolify. Leave empty to disable (dev mode).
+    recaptcha_secret_key: str = ""
+    recaptcha_score_threshold: float = 0.5   # 0.0 = bot, 1.0 = human; 0.5 is Google's recommended default
+    recaptcha_enabled: bool = True
+
     # ── File Storage ───────────────────────────────────────────────────────────
     # Product images are saved to upload_dir with UUID filenames and served
     # at /uploads/<uuid>.<ext>.  Filenames never change so they can be cached

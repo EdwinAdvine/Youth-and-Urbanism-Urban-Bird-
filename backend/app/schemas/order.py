@@ -19,6 +19,7 @@ class CheckoutRequest(BaseModel):
     mpesa_phone: str | None = None
     customer_notes: str | None = None
     guest_email: str | None = None  # required when checking out as guest
+    recaptcha_token: str | None = None  # reCAPTCHA v3 token — required for guest checkout in production
 
     @field_validator("shipping_full_name")
     @classmethod

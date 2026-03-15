@@ -6,6 +6,7 @@ import { useCartStore } from "../store/cartStore";
 import { useWishlistStore } from "../store/wishlistStore";
 import { useCompareStore } from "../store/compareStore";
 import { useAuthStore } from "../store/authStore";
+import { useUIStore } from "../store/uiStore";
 import { formatKSh } from "../utils/formatPrice";
 import Button from "../components/ui/Button";
 import { ProductGridSkeleton } from "../components/ui/Skeleton";
@@ -202,8 +203,10 @@ export default function ProductDetailPage() {
   const { isInWishlist, toggleItem: toggleWishlist } = useWishlistStore();
   const { toggleProduct, isInCompare } = useCompareStore();
   const { trackView } = useRecentlyViewed();
+  const { openCartDrawer } = useUIStore();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [justAdded, setJustAdded] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
@@ -289,7 +292,22 @@ export default function ProductDetailPage() {
     if (selectedVariant.stock_quantity === 0) return toast.error("This variant is out of stock");
     try {
       await addItem(selectedVariant.id, quantity);
-      toast.success(`${currentProduct?.name} added to cart`);
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 5000);
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">{currentProduct?.name} added!</span>
+            <button
+              onClick={() => { toast.dismiss(t.id); openCartDrawer(); }}
+              className="text-sm font-semibold text-maroon-700 whitespace-nowrap underline underline-offset-2"
+            >
+              View Cart
+            </button>
+          </div>
+        ),
+        { duration: 4000 }
+      );
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to add to cart");
     }
@@ -529,8 +547,16 @@ export default function ProductDetailPage() {
               className="flex items-center gap-2"
             >
               <ShoppingBag size={18} />
-              {selectedVariant?.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
+              {selectedVariant?.stock_quantity === 0 ? "Out of Stock" : justAdded ? "✓ Added to Cart" : "Add to Cart"}
             </Button>
+            {justAdded && (
+              <button
+                onClick={openCartDrawer}
+                className="px-4 py-3 rounded-lg border-2 border-maroon-700 bg-maroon-700 text-white font-manrope font-semibold text-sm whitespace-nowrap hover:bg-maroon-800 transition-colors"
+              >
+                View Cart →
+              </button>
+            )}
             <button
               onClick={() => { toggleWishlist(p.id); toast.success(inWishlist ? "Removed from wishlist" : "Added to wishlist"); }}
               className={`px-4 py-3 rounded-lg border-2 transition-colors ${
