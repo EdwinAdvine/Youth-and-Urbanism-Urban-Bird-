@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { NAV_CATEGORIES, NAV_EXTRAS } from "../../data/navData";
@@ -15,7 +16,6 @@ export default function MegaMenu() {
 
   useEffect(() => { fetchCategories(); }, []);
 
-  // Always measure the real header bottom so the dropdown attaches seamlessly
   const measureTop = useCallback(() => {
     const header = navRef.current?.closest("header");
     if (header) setDropdownTop(header.getBoundingClientRect().bottom);
@@ -31,42 +31,49 @@ export default function MegaMenu() {
     };
   }, [measureTop]);
 
-  // Merge static grouped structure with live DB data.
-  // Preserves TOPS / LAYERS / BOTTOMS / ACCESSORIES groups while
-  // reflecting admin name changes and subcategory activations.
+  // Merge static structure with live DB data.
+  // If the DB returns no matching subcategories, fall back to static groups
+  // so the dropdown always has content to show.
   const categories = useMemo(() => {
     if (!isLoaded || rawCategories.length === 0) return NAV_CATEGORIES;
     return NAV_CATEGORIES.map((cat) => {
       const dyn = rawCategories.find((d) => d.slug === cat.slug);
       if (!dyn) return cat;
-      const activeSlugs = new Set(
-        dyn.subcategories.filter((s) => s.is_active !== false).map((s) => s.slug)
-      );
+
+      const activeSubs = dyn.subcategories.filter((s) => s.is_active !== false);
+      // If the DB category has no active subcategories, keep static groups as-is
+      if (activeSubs.length === 0) return { ...cat, label: dyn.name.toUpperCase() };
+
+      const activeSlugs = new Set(activeSubs.map((s) => s.slug));
       const nameMap: Record<string, string> = Object.fromEntries(
         dyn.subcategories.map((s) => [s.slug, s.name])
       );
+
+      const mergedGroups = cat.groups
+        .map((g) => ({
+          ...g,
+          items: g.items
+            .map((item): NavItem | null => {
+              const subSlug = item.href.split("?sub=")[1];
+              if (subSlug && !activeSlugs.has(subSlug)) return null;
+              return subSlug && nameMap[subSlug] ? { ...item, label: nameMap[subSlug] } : item;
+            })
+            .filter((x): x is NavItem => x !== null),
+        }))
+        .filter((g) => g.items.length > 0);
+
       return {
         ...cat,
         label: dyn.name.toUpperCase(),
-        groups: cat.groups
-          .map((g) => ({
-            ...g,
-            items: g.items
-              .map((item): NavItem | null => {
-                const subSlug = item.href.split("?sub=")[1];
-                if (subSlug && !activeSlugs.has(subSlug)) return null;
-                return subSlug && nameMap[subSlug] ? { ...item, label: nameMap[subSlug] } : item;
-              })
-              .filter((x): x is NavItem => x !== null),
-          }))
-          .filter((g) => g.items.length > 0),
+        // If merge filtered everything out, fall back to static groups
+        groups: mergedGroups.length > 0 ? mergedGroups : cat.groups,
       };
     });
   }, [isLoaded, rawCategories]);
 
   const open = (slug: string) => {
     clearTimeout(timeoutRef.current);
-    measureTop(); // re-measure in case announcement bar was dismissed
+    measureTop();
     setActiveSlug(slug);
   };
 
@@ -77,6 +84,72 @@ export default function MegaMenu() {
   const keepOpen = () => clearTimeout(timeoutRef.current);
 
   const activeCategory = categories.find((c) => c.slug === activeSlug) ?? null;
+
+  // Render dropdown via portal into document.body so it is never clipped by
+  // the header's stacking context (z-30) or any ancestor overflow/transform.
+  const dropdown =
+    activeCategory && activeCategory.groups.length > 0
+      ? createPortal(
+          <div
+            className="fixed left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl"
+            style={{ top: dropdownTop, zIndex: 99999 }}
+            onMouseEnter={keepOpen}
+            onMouseLeave={close}
+          >
+            <div className="container-custom py-8">
+              <div
+                className="grid gap-8"
+                style={{
+                  gridTemplateColumns: `260px repeat(${activeCategory.groups.length}, 1fr)`,
+                }}
+              >
+                {/* Category banner */}
+                <div>
+                  <Link
+                    to={activeCategory.href}
+                    onClick={() => setActiveSlug(null)}
+                    className="block overflow-hidden rounded-xl group"
+                  >
+                    <img
+                      src={activeCategory.bannerUrl}
+                      alt={activeCategory.label}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <p className="mt-3 text-sm font-semibold font-lexend text-gray-900 group-hover:text-maroon-700 transition-colors">
+                      Shop All {activeCategory.label} →
+                    </p>
+                  </Link>
+                </div>
+
+                {/* Subcategory groups */}
+                {activeCategory.groups.map((group, gi) => (
+                  <div key={gi}>
+                    {group.title && (
+                      <p className="text-[11px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-3 pb-2 border-b border-gray-100">
+                        {group.title}
+                      </p>
+                    )}
+                    <ul className="space-y-1">
+                      {group.items.map((item) => (
+                        <li key={item.href}>
+                          <Link
+                            to={item.href}
+                            onClick={() => setActiveSlug(null)}
+                            className="block text-sm font-manrope text-gray-700 hover:text-maroon-700 py-0.5 transition-colors duration-150"
+                          >
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <>
@@ -123,66 +196,7 @@ export default function MegaMenu() {
         ))}
       </nav>
 
-      {/* Mega dropdown — fixed, top measured from real header bottom */}
-      {activeCategory && activeCategory.groups.length > 0 && (
-        <div
-          className="fixed left-0 right-0 bg-white border-t-2 border-maroon-700 shadow-2xl"
-          style={{ top: dropdownTop, zIndex: 9999 }}
-          onMouseEnter={keepOpen}
-          onMouseLeave={close}
-        >
-          <div className="container-custom py-8">
-            <div
-              className="grid gap-8"
-              style={{
-                gridTemplateColumns: `260px repeat(${activeCategory.groups.length}, 1fr)`,
-              }}
-            >
-              {/* Category banner */}
-              <div>
-                <Link
-                  to={activeCategory.href}
-                  onClick={() => setActiveSlug(null)}
-                  className="block overflow-hidden rounded-xl group"
-                >
-                  <img
-                    src={activeCategory.bannerUrl}
-                    alt={activeCategory.label}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <p className="mt-3 text-sm font-semibold font-lexend text-gray-900 group-hover:text-maroon-700 transition-colors">
-                    Shop All {activeCategory.label} →
-                  </p>
-                </Link>
-              </div>
-
-              {/* Subcategory groups */}
-              {activeCategory.groups.map((group, gi) => (
-                <div key={gi}>
-                  {group.title && (
-                    <p className="text-[11px] font-bold font-lexend uppercase tracking-widest text-gray-400 mb-3 pb-2 border-b border-gray-100">
-                      {group.title}
-                    </p>
-                  )}
-                  <ul className="space-y-1">
-                    {group.items.map((item) => (
-                      <li key={item.href}>
-                        <Link
-                          to={item.href}
-                          onClick={() => setActiveSlug(null)}
-                          className="block text-sm font-manrope text-gray-700 hover:text-maroon-700 py-0.5 transition-colors duration-150"
-                        >
-                          {item.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {dropdown}
     </>
   );
 }
