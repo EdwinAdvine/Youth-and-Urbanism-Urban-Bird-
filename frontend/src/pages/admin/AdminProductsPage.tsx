@@ -7,6 +7,7 @@ import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import toast from "react-hot-toast";
 import { useNavCategoryStore } from "../../store/navCategoryStore";
+import { useAuthStore } from "../../store/authStore";
 import { useSEO } from "../../hooks/useSEO";
 
 export default function AdminProductsPage() {
@@ -18,6 +19,7 @@ export default function AdminProductsPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
 
+  const isSuperAdmin = useAuthStore((s) => s.user?.role === "super_admin");
   const { navCategories, rawCategories, isLoaded, fetchCategories } = useNavCategoryStore();
   useEffect(() => { fetchCategories(); }, []);
 
@@ -187,9 +189,11 @@ export default function AdminProductsPage() {
                         <Link to={`/admin/products/${p.id}/edit`} className="text-gray-500 hover:text-maroon-700 transition-colors">
                           <Edit2 size={15} />
                         </Link>
-                        <button onClick={() => handleDelete(p.id)} className="text-gray-500 hover:text-red-500 transition-colors">
-                          <Trash2 size={15} />
-                        </button>
+                        {isSuperAdmin && (
+                          <button onClick={() => handleDelete(p.id)} className="text-gray-500 hover:text-red-500 transition-colors">
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

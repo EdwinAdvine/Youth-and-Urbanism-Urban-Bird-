@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, delete as sql_delete
+from sqlalchemy import select, func, or_, delete as sql_delete, text
 from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
@@ -12,7 +12,7 @@ from app.models.product import Product, ProductVariant
 from app.models.coupon import Coupon
 from app.models.user import User
 from app.models.audit_log import AuditLog
-from app.schemas.order import OrderOut, UpdateOrderStatus
+from app.schemas.order import UpdateOrderStatus
 from app.api.deps import get_admin_user, get_super_admin
 from app.services.email_service import send_shipping_notification, send_admin_dispatch_notification
 from app.services.sms_service import send_shipping_sms
@@ -98,7 +98,7 @@ async def list_orders(
     return {"items": items, "total": total, "page": page, "limit": limit}
 
 
-@router.get("/{order_id}", response_model=OrderOut)
+@router.get("/{order_id}")
 async def get_order(
     order_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -106,13 +106,75 @@ async def get_order(
 ):
     result = await db.execute(
         select(Order)
-        .options(selectinload(Order.items), selectinload(Order.status_history))
+        .options(
+            selectinload(Order.items),
+            selectinload(Order.status_history),
+            selectinload(Order.user),
+            selectinload(Order.payments),
+        )
         .where(Order.id == order_id)
     )
     order = result.scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order
+
+    payment = order.payments[0] if order.payments else None
+    return {
+        "id": str(order.id),
+        "order_number": order.order_number,
+        "status": order.status,
+        "subtotal": float(order.subtotal),
+        "discount_amount": float(order.discount_amount),
+        "coupon_code": order.coupon_code,
+        "shipping_cost": float(order.shipping_cost),
+        "tax_amount": float(order.tax_amount),
+        "total": float(order.total),
+        "shipping_full_name": order.shipping_full_name,
+        "shipping_phone": order.shipping_phone,
+        "shipping_address_line_1": order.shipping_address_1,
+        "shipping_address_line_2": order.shipping_address_2,
+        "shipping_city": order.shipping_city,
+        "shipping_county": order.shipping_county,
+        "payment_method": order.payment_method,
+        "payment_status": order.payment_status,
+        "tracking_number": order.tracking_number,
+        "customer_notes": order.customer_notes,
+        "created_at": order.created_at.isoformat(),
+        "user": {
+            "first_name": order.user.first_name,
+            "last_name": order.user.last_name,
+            "email": order.user.email,
+            "phone": order.user.phone,
+        } if order.user else None,
+        "payment": {
+            "status": payment.status,
+            "gateway": payment.gateway,
+            "amount": float(payment.amount),
+        } if payment else None,
+        "items": [
+            {
+                "id": str(item.id),
+                "product_name": item.product_name,
+                "sku": item.variant_sku,
+                "size": item.size,
+                "color_name": item.color_name,
+                "image_url": item.product_image,
+                "quantity": item.quantity,
+                "unit_price": float(item.unit_price),
+            }
+            for item in order.items
+        ],
+        "status_history": [
+            {
+                "id": str(h.id),
+                "old_status": h.old_status,
+                "new_status": h.new_status,
+                "note": h.note,
+                "created_at": h.created_at.isoformat(),
+            }
+            for h in order.status_history
+        ],
+    }
 
 
 @router.patch("/{order_id}/status")
@@ -256,7 +318,11 @@ async def delete_order(
     """
     result = await db.execute(
         select(Order)
-        .options(selectinload(Order.items), selectinload(Order.status_history))
+        .options(
+            selectinload(Order.items),
+            selectinload(Order.status_history),
+            selectinload(Order.return_requests),
+        )
         .where(Order.id == order_id)
     )
     order = result.scalar_one_or_none()
@@ -321,14 +387,12 @@ async def delete_order(
 
     # Delete orphaned notifications referencing this order (no FK cascade covers these)
     await db.execute(
-        sql_delete(Notification).where(
-            Notification.data["order_id"].astext == str(order_id)
-        )
+        text("DELETE FROM notifications WHERE data->>'order_id' = :order_id"),
+        {"order_id": str(order_id)},
     )
     await db.execute(
-        sql_delete(Notification).where(
-            Notification.data["order_number"].astext == order_number
-        )
+        text("DELETE FROM notifications WHERE data->>'order_number' = :order_number"),
+        {"order_number": order_number},
     )
 
     await db.delete(order)

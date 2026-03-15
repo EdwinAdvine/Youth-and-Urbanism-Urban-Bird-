@@ -6,12 +6,14 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import toast from "react-hot-toast";
 import { useSEO } from "../../hooks/useSEO";
+import { useAuthStore } from "../../store/authStore";
 
 export default function AdminProductFormPage() {
   useSEO({ title: "Product", noindex: true });
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const isSuperAdmin = useAuthStore((s) => s.user?.role === "super_admin");
 
   const [categories, setCategories] = useState<any[]>([]);
   const [availableSizes, setAvailableSizes] = useState<string[]>([]);
@@ -183,7 +185,7 @@ export default function AdminProductFormPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold font-lexend text-gray-900">{isEdit ? "Edit Product" : "New Product"}</h1>
         <div className="flex gap-3">
-          {isEdit && (
+          {isEdit && isSuperAdmin && (
             <Button
               type="button"
               variant="outline"

@@ -13,7 +13,7 @@ from app.models.product import Product, ProductVariant, ProductImage, Category, 
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.schemas.product import ProductCreate, ProductUpdate, VariantCreate, ProductDetail
-from app.api.deps import get_admin_user
+from app.api.deps import get_admin_user, get_super_admin
 from app.utils.file_upload import save_product_image
 from app.config import settings
 
@@ -84,6 +84,8 @@ async def list_products(
 
     if status:
         query = query.where(Product.status == status)
+    else:
+        query = query.where(Product.status != "archived")
     if q:
         query = query.where(Product.name.ilike(f"%{q}%"))
     if category:
@@ -230,7 +232,7 @@ async def update_product(
 async def archive_product(
     product_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_admin_user),
+    admin: User = Depends(get_super_admin),
 ):
     result = await db.execute(select(Product).where(Product.id == product_id))
     product = result.scalar_one_or_none()
