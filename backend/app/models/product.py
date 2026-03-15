@@ -116,7 +116,7 @@ class ProductVariant(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
-    sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    sku: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     size: Mapped[str] = mapped_column(String(20), nullable=False)
     color_name: Mapped[str] = mapped_column(String(50), nullable=False)
     color_hex: Mapped[str] = mapped_column(String(7), nullable=False, default="#000000")
