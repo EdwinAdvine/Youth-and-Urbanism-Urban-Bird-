@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.site_settings import SiteSetting, DEFAULT_SETTINGS
 from app.models.user import User
 from app.api.deps import get_super_admin
+from app.config import settings as app_settings
 
 router = APIRouter()
 
@@ -109,3 +110,9 @@ async def get_public_settings(db: AsyncSession = Depends(get_db)):
     )
     settings = result.scalars().all()
     return {s.key: s.value for s in settings}
+
+
+@router.get("/upload-config")
+async def get_upload_config():
+    """Returns upload constraints the admin UI needs for accurate client-side validation."""
+    return {"max_image_size_mb": app_settings.max_image_size_mb}

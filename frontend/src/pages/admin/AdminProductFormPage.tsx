@@ -37,6 +37,7 @@ export default function AdminProductFormPage() {
   const [colorMixes, setColorMixes] = useState<ColorGroup[]>([]);
   const [mixPickerSelection, setMixPickerSelection] = useState<string[]>([]);
 
+  const [maxImageSizeMb, setMaxImageSizeMb] = useState<number>(20); // safe default = nginx cap
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +53,9 @@ export default function AdminProductFormPage() {
       if (Array.isArray(r.data.available_sizes)) setAvailableSizes(r.data.available_sizes);
       if (Array.isArray(r.data.available_colors)) setAvailableColors(r.data.available_colors);
     }).catch(() => {});
+    api.get("/api/v1/admin/settings/upload-config").then((r) => {
+      if (r.data.max_image_size_mb) setMaxImageSizeMb(r.data.max_image_size_mb);
+    }).catch(() => {}); // silently keep the 20MB nginx-cap default on failure
 
     if (isEdit) {
       setIsLoading(true);
@@ -103,16 +107,17 @@ export default function AdminProductFormPage() {
   };
 
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files!);
-      const MAX_BYTES = 5 * 1024 * 1024; // 5MB — matches backend limit
-      const oversized = files.filter((f) => f.size > MAX_BYTES);
-      if (oversized.length > 0) {
-        toast.error(`${oversized.length} file(s) exceed the 5 MB limit and were skipped.`);
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const maxBytes = maxImageSizeMb * 1024 * 1024;
+    files.forEach((f) => {
+      if (f.size > maxBytes) {
+        toast.error(`"${f.name}" exceeds the ${maxImageSizeMb} MB limit and was skipped.`);
       }
-      const valid = files.filter((f) => f.size <= MAX_BYTES);
-      if (valid.length > 0) setImages((prev) => [...prev, ...valid]);
-    }
+    });
+    const valid = files.filter((f) => f.size <= maxBytes);
+    if (valid.length > 0) setImages((prev) => [...prev, ...valid]);
+    e.target.value = ""; // reset so re-selecting the same file fires onChange again
   };
 
   const handleImageDelete = async (imageId: string) => {
@@ -165,17 +170,37 @@ export default function AdminProductFormPage() {
         productId = res.data.id;
       }
 
-      // Upload images
+      // Upload images — try each individually so one failure doesn't block others
+      const failedUploads: { name: string; error: string }[] = [];
       for (const img of images) {
         const fd = new FormData();
         fd.append("file", img);
-        await api.post(`/api/v1/admin/products/${productId}/images`, fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        try {
+          await api.post(`/api/v1/admin/products/${productId}/images`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } catch (err: any) {
+          const detail = err.response?.data?.detail;
+          failedUploads.push({
+            name: img.name,
+            error: typeof detail === "string" ? detail : `Upload failed (${err.response?.status ?? "network error"})`,
+          });
+        }
       }
 
-      toast.success(isEdit ? "Product updated!" : "Product created!");
-      navigate("/admin/products");
+      if (failedUploads.length === 0) {
+        toast.success(isEdit ? "Product updated!" : "Product created!");
+        navigate("/admin/products");
+      } else {
+        // Product saved but some images failed — stay on page so user can retry
+        toast.success(isEdit ? "Product saved." : "Product created.");
+        failedUploads.forEach(({ name, error }) => {
+          toast.error(`"${name}": ${error}`, { duration: 6000 });
+        });
+        // Keep only failed images in the queue so user can retry them
+        const failedNames = new Set(failedUploads.map((f) => f.name));
+        setImages((prev) => prev.filter((f) => failedNames.has(f.name)));
+      }
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       const msg = Array.isArray(detail)
@@ -272,6 +297,11 @@ export default function AdminProductFormPage() {
               {images.map((img, i) => (
                 <div key={i} className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
                   <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-1 py-0.5">
+                    <span className="text-white text-[10px] font-manrope truncate block">
+                      {(img.size / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
