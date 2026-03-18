@@ -75,19 +75,19 @@ async def _patch_stale_settings() -> None:
     """One-time data fix: update any settings that still hold old placeholder values."""
     from app.database import AsyncSessionLocal
     from app.models.site_settings import SiteSetting
-    from sqlalchemy import select, update
+    from sqlalchemy import select
     PATCHES = {
         "whatsapp_number": ("254700000000", "254799075061"),
         "social_links": None,  # handled below
     }
     try:
         async with AsyncSessionLocal() as db:
-            # Fix plain whatsapp_number
-            await db.execute(
-                update(SiteSetting)
-                .where(SiteSetting.key == "whatsapp_number", SiteSetting.value == "254700000000")
-                .values(value="254799075061")
-            )
+            # Fix plain whatsapp_number — fetch first, compare in Python to avoid
+            # json = varchar operator error on PostgreSQL's JSON column type
+            wa_result = await db.execute(select(SiteSetting).where(SiteSetting.key == "whatsapp_number"))
+            wa_row = wa_result.scalar_one_or_none()
+            if wa_row and wa_row.value == "254700000000":
+                wa_row.value = "254799075061"
             # Fix whatsapp URL inside social_links JSON if still the old number
             result = await db.execute(select(SiteSetting).where(SiteSetting.key == "social_links"))
             row = result.scalar_one_or_none()
