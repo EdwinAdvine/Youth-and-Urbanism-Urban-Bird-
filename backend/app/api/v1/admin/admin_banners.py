@@ -132,6 +132,40 @@ async def reorder_banners(
     return {"message": "Banners reordered"}
 
 
+@router.post("/{banner_id}/duplicate", status_code=201)
+async def duplicate_banner(
+    banner_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Create an exact copy of a banner, placed at the end of the list and set inactive."""
+    result = await db.execute(select(Banner).where(Banner.id == banner_id))
+    original = result.scalar_one_or_none()
+    if not original:
+        raise HTTPException(status_code=404, detail="Banner not found")
+
+    # Place the copy after the last banner
+    order_result = await db.execute(select(Banner.display_order).order_by(Banner.display_order.desc()))
+    max_order = order_result.scalars().first() or 0
+
+    copy = Banner(
+        title=f"Copy of {original.title}",
+        subtitle=original.subtitle,
+        cta_text=original.cta_text,
+        cta_link=original.cta_link,
+        image_url=original.image_url,
+        mobile_image_url=original.mobile_image_url,
+        overlay_color=original.overlay_color,
+        display_order=max_order + 1,
+        is_active=False,   # start inactive so it doesn't go live immediately
+        starts_at=None,
+        ends_at=None,
+    )
+    db.add(copy)
+    await db.flush()
+    return _banner_dict(copy)
+
+
 @router.post("/upload-image")
 async def upload_banner_image(
     file: UploadFile = File(...),

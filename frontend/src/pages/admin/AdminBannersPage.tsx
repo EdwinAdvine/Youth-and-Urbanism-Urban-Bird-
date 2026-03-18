@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, GripVertical, Edit2, Trash2, X, Eye, EyeOff, ImagePlus, ExternalLink, Monitor } from "lucide-react";
+import { Plus, GripVertical, Edit2, Trash2, X, Eye, EyeOff, ImagePlus, ExternalLink, Monitor, Copy } from "lucide-react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 import { useSEO } from "../../hooks/useSEO";
@@ -123,6 +123,7 @@ export default function AdminBannersPage() {
   const [editTarget, setEditTarget] = useState<any>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -207,6 +208,19 @@ export default function AdminBannersPage() {
       load();
     } catch {
       toast.error("Failed to update");
+    }
+  };
+
+  const handleDuplicate = async (b: any) => {
+    setDuplicating(b.id);
+    try {
+      await api.post(`/api/v1/admin/banners/${b.id}/duplicate`);
+      toast.success(`"${b.title}" duplicated — it starts inactive`);
+      load();
+    } catch {
+      toast.error("Failed to duplicate banner");
+    } finally {
+      setDuplicating(null);
     }
   };
 
@@ -328,6 +342,17 @@ export default function AdminBannersPage() {
                   </button>
                   <button onClick={() => openEdit(b)} className="p-1.5 text-gray-400 hover:text-maroon-700 rounded">
                     <Edit2 size={15} />
+                  </button>
+                  <button
+                    onClick={() => handleDuplicate(b)}
+                    disabled={duplicating === b.id}
+                    title="Duplicate"
+                    className="p-1.5 text-gray-400 hover:text-maroon-700 rounded disabled:opacity-40"
+                  >
+                    {duplicating === b.id
+                      ? <span className="block w-[15px] h-[15px] border-2 border-gray-300 border-t-maroon-700 rounded-full animate-spin" />
+                      : <Copy size={15} />
+                    }
                   </button>
                   <button onClick={() => handleDelete(b.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
                     <Trash2 size={15} />
