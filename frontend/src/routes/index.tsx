@@ -63,12 +63,20 @@ const AdminContentPage = lazy(() => import("../pages/admin/AdminContentPage"));
 const AdminShippingRatesPage = lazy(() => import("../pages/admin/AdminShippingRatesPage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, isInitialized } = useAuthStore((s) => ({
+    isAuthenticated: s.isAuthenticated,
+    isInitialized: s.isInitialized,
+  }));
+  if (!isInitialized) return <PageLoader />;
   return isAuthenticated ? <>{children}</> : <Navigate to="/account/login" replace />;
 }
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((s) => s.user);
+  const { user, isInitialized } = useAuthStore((s) => ({
+    user: s.user,
+    isInitialized: s.isInitialized,
+  }));
+  if (!isInitialized) return <PageLoader />;
   if (!user) return <Navigate to="/admin/login" replace />;
   if (!["admin", "super_admin"].includes(user.role)) return <Navigate to="/admin/login" replace />;
   return <>{children}</>;

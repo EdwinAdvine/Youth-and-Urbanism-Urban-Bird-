@@ -104,7 +104,14 @@ export default function AdminProductFormPage() {
 
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages((prev) => [...prev, ...Array.from(e.target.files!)]);
+      const files = Array.from(e.target.files!);
+      const MAX_BYTES = 5 * 1024 * 1024; // 5MB — matches backend limit
+      const oversized = files.filter((f) => f.size > MAX_BYTES);
+      if (oversized.length > 0) {
+        toast.error(`${oversized.length} file(s) exceed the 5 MB limit and were skipped.`);
+      }
+      const valid = files.filter((f) => f.size <= MAX_BYTES);
+      if (valid.length > 0) setImages((prev) => [...prev, ...valid]);
     }
   };
 
